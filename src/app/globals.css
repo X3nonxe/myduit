@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #d97757;
+  --color-paper: #ffffff;
+  --color-surface: #f9f8f4;
+  --color-border-soft: #e5e2da;
+  --color-text-main: #1d1d1b;
+  --color-text-muted: #6b6b6b;
+
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+:root {
+  --background: #f9f8f4;
+  --foreground: #1d1d1b;
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-text-main);
+    font-weight: 500;
+  }
+}
+
+@layer utilities {
+  .claude-card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.2s ease;
+  }
+
+  .claude-card:hover {
+    box-shadow: var(--shadow-medium);
+    border-color: #d1cdc0;
+  }
+
+  .btn-primary {
+    background: var(--color-text-main);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: #333333;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--color-border-soft);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: #f1efea;
+  }
+}

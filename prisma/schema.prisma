@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  password_hash String
+  name          String?
+  image         String?
+  created_at    DateTime      @default(now())
+  accounts      Account[]
+  transactions  Transaction[]
+  budgets       Budget[]
+  goals         Goal[]
+}
+
+model Account {
+  id            String        @id @default(cuid())
+  name          String        // e.g., "Cash", "BCA", "GoPay"
+  type          String        // "BANK", "CASH", "E-WALLET"
+  balance       Float         @default(0)
+  user_id       String
+  user          User          @relation(fields: [user_id], references: [id])
+  transactions  Transaction[]
+  created_at    DateTime      @default(now())
+
+  @@index([user_id])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  user_id     String
+  user        User            @relation(fields: [user_id], references: [id])
+  account_id  String?
+  account     Account?        @relation(fields: [account_id], references: [id])
+  amount      Float
+  type        TransactionType
+  category    String          // Simplified for now, or link to a Category model
+  date        DateTime
+  description String?
+  created_at  DateTime        @default(now())
+
+  @@index([user_id])
+  @@index([account_id])
+}
+
+model Budget {
+  id          String    @id @default(cuid())
+  user_id     String
+  user        User      @relation(fields: [user_id], references: [id])
+  category    String
+  amount      Float
+  period      String    // "MONTHLY", "WEEKLY"
+  start_date  DateTime
+  end_date    DateTime
+  created_at  DateTime  @default(now())
+
+  @@index([user_id])
+}
+
+model Goal {
+  id             String    @id @default(cuid())
+  user_id        String
+  user           User      @relation(fields: [user_id], references: [id])
+  name           String
+  target_amount  Float
+  current_amount Float     @default(0)
+  deadline       DateTime?
+  created_at     DateTime  @default(now())
+
+  @@index([user_id])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
