@@ -16,7 +16,6 @@ import {
 import { GlassCard } from "@/components/ui/GlassCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { id } from "date-fns/locale";
 
 export const BudgetsView = () => {
     const [budgets, setBudgets] = useState<any[]>([]);
@@ -49,7 +48,7 @@ export const BudgetsView = () => {
             await addBudget({
                 category: formData.get("category") as string,
                 amount: parseFloat(formData.get("amount") as string),
-                period: formData.get("period") as string,
+                period: formData.get("period") as "MONTHLY" | "WEEKLY",
                 start_date: new Date(formData.get("start_date") as string),
                 end_date: new Date(formData.get("end_date") as string),
             });

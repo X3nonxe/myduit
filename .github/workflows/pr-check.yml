@@ -1,0 +1,94 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  pr-title:
+    name: 📝 PR Title Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+
+  size-check:
+    name: 📊 PR Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: "size/XS"
+          xs_max_size: 10
+          s_label: "size/S"
+          s_max_size: 100
+          m_label: "size/M"
+          m_max_size: 500
+          l_label: "size/L"
+          l_max_size: 1000
+          xl_label: "size/XL"
+          fail_if_xl: false
+
+  preview:
+    name: 🔍 Preview Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        continue-on-error: true
+
+      - name: Build Project
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        continue-on-error: true
+
+      - name: Deploy Preview
+        id: preview
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || echo "Preview skipped")
+          echo "url=$url" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Comment PR with preview URL
+        if: steps.preview.outputs.url != 'Preview skipped'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🔍 **Preview Deployment**\n\n🌐 URL: ${{ steps.preview.outputs.url }}`
+            })
+        continue-on-error: true
