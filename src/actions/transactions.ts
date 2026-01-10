@@ -27,33 +27,43 @@ export async function addTransaction(data: {
     // Handle empty string account_id
     const accountId = data.account_id === "" ? null : data.account_id;
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        amount: data.amount,
-        type: data.type,
-        category: data.category,
-        date: data.date,
-        description: data.description || null,
-        account_id: accountId,
-        user_id: userId,
-      },
+    // Use Prisma transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          amount: data.amount,
+          type: data.type,
+          category: data.category,
+          date: data.date,
+          description: data.description || null,
+          account_id: accountId,
+          user_id: userId,
+        },
+      });
+
+      // Update account balance if account_id is provided
+      if (accountId) {
+        const amount = data.type === "INCOME" ? data.amount : -data.amount;
+        const account = await tx.account.findFirst({
+          where: { id: accountId, user_id: userId }
+        });
+        if (!account) throw new Error("Account not found or not owned by user");
+
+        await tx.account.update({
+          where: { id: accountId },
+          data: {
+            balance: {
+              increment: amount
+            }
+          }
+        });
+      }
+
+      return transaction;
     });
 
-    // Update account balance if account_id is provided
-    if (accountId) {
-      const amount = data.type === "INCOME" ? data.amount : -data.amount;
-      await prisma.account.update({
-        where: { id: accountId },
-        data: {
-          balance: {
-            increment: amount
-          }
-        }
-      });
-    }
-
     revalidatePath("/dashboard");
-    return transaction;
+    return result;
   } catch (error: any) {
     console.error("DEBUG_ERROR: Failed to add transaction:", error);
     return { error: error.message || "Gagal menyimpan transaksi." };
@@ -72,7 +82,13 @@ export async function deleteTransaction(id: string) {
   revalidatePath("/dashboard");
 }
 
-export async function updateTransaction(id: string, data: any) {
+export async function updateTransaction(id: string, data: {
+  amount?: number;
+  type?: TransactionType;
+  category?: string;
+  date?: Date;
+  description?: string;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
   const userId = (session.user as any).id;

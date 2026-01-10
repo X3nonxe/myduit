@@ -12,8 +12,6 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                console.log("--- Login Attempt ---", credentials?.email);
-
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Email dan password wajib diisi");
                 }
@@ -24,12 +22,10 @@ export const authOptions: NextAuthOptions = {
                 });
 
                 if (!user) {
-                    console.log("LOGIN_FAILED: User not found ->", email);
                     throw new Error("Akun tidak ditemukan");
                 }
 
                 if (!user.password_hash) {
-                    console.log("LOGIN_FAILED: User has no password_hash ->", email);
                     throw new Error("Akun ini tidak memiliki kata sandi");
                 }
 
@@ -39,11 +35,9 @@ export const authOptions: NextAuthOptions = {
                 );
 
                 if (!isPasswordCorrect) {
-                    console.log("LOGIN_FAILED: Password incorrect for ->", email);
                     throw new Error("Email atau kata sandi salah");
                 }
 
-                console.log("LOGIN_SUCCESS: Found user ->", email);
                 return {
                     id: user.id,
                     email: user.email,
@@ -75,6 +69,6 @@ export const authOptions: NextAuthOptions = {
             return session;
         },
     },
-    secret: process.env.NEXTAUTH_SECRET || "mantap-jiwa-rahasia-negara-123",
+    secret: process.env.NEXTAUTH_SECRET,
     debug: true,
 };

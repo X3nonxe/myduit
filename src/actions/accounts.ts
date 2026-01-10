@@ -45,10 +45,6 @@ export async function addAccount(data: {
         revalidatePath("/dashboard");
         return { success: true, data: account };
     } catch (error: any) {
-        const fs = require('fs');
-        const logMsg = `[${new Date().toISOString()}] DEBUG_ERROR: Failed to add account. UserId: ${userId}, Data: ${JSON.stringify(data)}, Error: ${error.message}\nStack: ${error.stack}\n\n`;
-        fs.appendFileSync('error.log', logMsg);
-        console.error("DEBUG_ERROR: Failed to add account. UserId:", userId, "Data:", data, "Error:", error);
         return { error: error.message || "Gagal menambah akun." };
     }
 }
@@ -62,7 +58,7 @@ export async function deleteAccount(id: string) {
     try {
         // Check if account has transactions
         const hasTransactions = await prisma.transaction.findFirst({
-            where: { account_id: id },
+            where: { account_id: id, user_id: String(userId) },
         });
 
         if (hasTransactions) {

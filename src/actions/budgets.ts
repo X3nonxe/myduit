@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { BudgetInput } from "@/lib/validation";
 
 export async function getBudgets() {
     const session = await getServerSession(authOptions);
@@ -16,13 +17,7 @@ export async function getBudgets() {
     });
 }
 
-export async function addBudget(data: {
-    category: string;
-    amount: number;
-    period: string;
-    start_date: Date;
-    end_date: Date;
-}) {
+export async function addBudget(data: BudgetInput) {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id;
 
