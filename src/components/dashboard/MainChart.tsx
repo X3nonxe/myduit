@@ -34,9 +34,15 @@ const formatCompactIDR = (value: number) => {
     }).format(value);
 };
 
+interface ChartData {
+    name: string;
+    income: number;
+    expense: number;
+}
+
 export const MainChart = () => {
     const { filterType, setFilterType } = useFinanceStore();
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -44,7 +50,7 @@ export const MainChart = () => {
             setLoading(true);
             try {
                 const stats = await getDashboardStats(filterType);
-                setData(stats as any);
+                setData(stats as ChartData[]);
             } catch (error) {
                 console.error("Failed to fetch stats:", error);
             } finally {
@@ -121,7 +127,7 @@ export const MainChart = () => {
                                     fontSize: "12px",
                                     color: "#1d1d1b",
                                 }}
-                                formatter={(value: any, name: any) => [
+                                formatter={(value, name) => [
                                     formatIDR(Number(value) || 0),
                                     String(name) === "income" ? "Pemasukan" : "Pengeluaran",
                                 ]}

@@ -10,11 +10,17 @@ import { TransactionType } from "@prisma/client";
 
 import { getAccounts } from "@/actions/accounts";
 
+interface Account {
+    id: string;
+    name: string;
+    type: string;
+}
+
 export const AddTransactionModal = () => {
     const { isAddModalOpen, setIsAddModalOpen } = useFinanceStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [accounts, setAccounts] = useState<any[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
 
     useEffect(() => {
         if (isAddModalOpen) {
@@ -53,15 +59,15 @@ export const AddTransactionModal = () => {
                 account_id,
             });
 
-            if ((result as any).error) {
-                setError((result as any).error);
+            if ('error' in result) {
+                setError(result.error);
             } else {
                 setIsAddModalOpen(false);
                 (e.target as HTMLFormElement).reset();
                 // Potentially trigger a refresh if not using revalidatePath correctly
                 window.location.reload();
             }
-        } catch (err: any) {
+        } catch {
             setError("Terjadi kesalahan sistem. Coba lagi.");
         } finally {
             setLoading(false);

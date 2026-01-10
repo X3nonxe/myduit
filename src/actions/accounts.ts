@@ -4,11 +4,12 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { SessionUser } from "@/lib/utils";
 
 export async function getAccounts() {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as any).id;
+    const userId = (session.user as SessionUser).id;
 
     return await prisma.account.findMany({
         where: { user_id: userId },
@@ -22,7 +23,7 @@ export async function addAccount(data: {
     balance: number;
 }) {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = (session?.user as SessionUser | undefined)?.id;
 
     if (!userId) {
         console.error("SESSION_ERROR: userId is missing from session");
@@ -44,14 +45,15 @@ export async function addAccount(data: {
 
         revalidatePath("/dashboard");
         return { success: true, data: account };
-    } catch (error: any) {
-        return { error: error.message || "Gagal menambah akun." };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Gagal menambah akun.";
+        return { error: message };
     }
 }
 
 export async function deleteAccount(id: string) {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = (session?.user as SessionUser | undefined)?.id;
 
     if (!userId) return { error: "Sesi tidak valid." };
 
@@ -71,7 +73,7 @@ export async function deleteAccount(id: string) {
 
         revalidatePath("/dashboard");
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DEBUG_ERROR: Failed to delete account:", error);
         return { error: "Gagal menghapus akun." };
     }

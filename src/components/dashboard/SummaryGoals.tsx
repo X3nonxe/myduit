@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { getGoals } from "@/actions/goals";
 import { Loader2 } from "lucide-react";
 
-export const SummaryGoals = ({ onSeeAll }: { onSeeAll: () => void }) => {
-    const [goals, setGoals] = useState<any[]>([]);
+interface Goal {
+    id: string;
+    name: string;
+    target_amount: number;
+    current_amount: number;
+}
+
+export const SummaryGoals = () => {
+    const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

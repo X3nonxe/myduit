@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getGoals, addGoal, deleteGoal, updateGoalProgress } from "@/actions/goals";
+import { getGoals, addGoal, deleteGoal } from "@/actions/goals";
 import {
     Target,
     Plus,
@@ -9,7 +9,6 @@ import {
     Loader2,
     Trophy,
     Calendar,
-    ArrowRight,
     Sparkles,
     Coins
 } from "lucide-react";
@@ -18,8 +17,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
+interface Goal {
+    id: string;
+    name: string;
+    target_amount: number;
+    current_amount: number;
+    deadline?: Date | string | null;
+}
+
 export const GoalsView = () => {
-    const [goals, setGoals] = useState<any[]>([]);
+    const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -54,7 +61,7 @@ export const GoalsView = () => {
             });
             setIsAdding(false);
             fetchData();
-        } catch (error) {
+        } catch {
             alert("Gagal menambah target.");
         } finally {
             setSaving(false);
@@ -66,7 +73,7 @@ export const GoalsView = () => {
         try {
             await deleteGoal(id);
             fetchData();
-        } catch (error) {
+        } catch {
             alert("Gagal menghapus target.");
         }
     };

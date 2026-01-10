@@ -2,6 +2,11 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { User } from "next-auth";
+
+interface UserWithImage extends User {
+    image?: string | null;
+}
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -57,14 +62,14 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                token.image = (user as any).image;
+                token.image = (user as UserWithImage).image;
             }
             return token;
         },
         async session({ session, token }) {
             if (token && session.user) {
-                (session.user as any).id = token.id;
-                (session.user as any).image = token.image;
+                (session.user as UserWithImage & { id?: string }).id = token.id as string;
+                (session.user as UserWithImage).image = token.image as string | null;
             }
             return session;
         },

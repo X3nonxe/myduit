@@ -10,14 +10,20 @@ import {
     CreditCard,
     Banknote,
     Smartphone,
-    TrendingUp,
-    MoreVertical
+    TrendingUp
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface Account {
+    id: string;
+    name: string;
+    type: string;
+    balance: number;
+}
+
 export const AccountsView = () => {
-    const [accounts, setAccounts] = useState<any[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -56,7 +62,7 @@ export const AccountsView = () => {
                 setIsAdding(false);
                 fetchData();
             }
-        } catch (error) {
+        } catch {
             alert("Gagal menambah akun.");
         } finally {
             setSaving(false);
@@ -72,7 +78,7 @@ export const AccountsView = () => {
             } else {
                 fetchData();
             }
-        } catch (error: any) {
+        } catch {
             alert("Gagal menghapus akun.");
         }
     };

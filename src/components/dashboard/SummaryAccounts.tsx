@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { getAccounts } from "@/actions/accounts";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-export const SummaryAccounts = ({ onSeeAll }: { onSeeAll: () => void }) => {
-    const [accounts, setAccounts] = useState<any[]>([]);
+interface Account {
+    id: string;
+    name: string;
+    type: string;
+    balance: number;
+}
+
+export const SummaryAccounts = () => {
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -55,6 +55,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
                 where: { email: "user🔥💀@gmail.com" },
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle email with special unicode characters", async () => {
@@ -67,6 +68,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -83,6 +85,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const calledEmail = (mockPrisma.user.findUnique as jest.Mock).mock
                 .calls[0][0].where.email;
             expect(calledEmail).toContain("\x00");
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -102,6 +105,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                 extremelyLongPassword,
                 12
             );
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle password with only 1 character", async () => {
@@ -130,6 +134,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
                 where: { email: "[object object]" }, // toLowerCase applied
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle multiple values for same key", async () => {
@@ -144,6 +149,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
                 where: { email: "first@test.com" },
             });
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -210,6 +216,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                     name: "",
                 }),
             });
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -226,6 +233,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
                 where: { email: "'; drop table users; --" },
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle NoSQL injection attempt", async () => {
@@ -238,6 +246,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle LDAP injection attempt", async () => {
@@ -250,6 +259,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -270,6 +280,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                     name: xssPayload,
                 }),
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle img onerror XSS in name", async () => {
@@ -288,6 +299,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                     name: xssPayload,
                 }),
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle SVG onload XSS in email", async () => {
@@ -300,15 +312,16 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
     });
 
     describe("9. Race Condition - Double Registration", () => {
         it("should potentially allow duplicate registration in race condition", async () => {
-            let callCount = 0;
+            let _callCount = 0;
             (mockPrisma.user.findUnique as jest.Mock).mockImplementation(
                 async () => {
-                    callCount++;
+                    _callCount++;
                     return null;
                 }
             );
@@ -325,6 +338,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
             ]);
 
             expect(mockPrisma.user.create).toHaveBeenCalledTimes(2);
+            expect(results[0]).toHaveProperty("success", true);
+            expect(results[1]).toHaveProperty("success", true);
         });
 
         it("should handle database unique constraint error gracefully", async () => {
@@ -373,6 +388,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                     name: "   ",
                 }),
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle tabs and newlines in password", async () => {
@@ -385,6 +401,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockBcrypt.hash).toHaveBeenCalledWith("\t\n\r", 12);
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle mixed unicode whitespace", async () => {
@@ -400,6 +417,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockBcrypt.hash).toHaveBeenCalledWith(unicodeWhitespace, 12);
+            expect(result).toHaveProperty("success", true);
         });
     });
 
@@ -416,6 +434,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle email without @ symbol", async () => {
@@ -428,6 +447,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.create).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle email with multiple @ symbols", async () => {
@@ -440,6 +460,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockPrisma.user.findUnique).toHaveBeenCalled();
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle prototype pollution attempt in name", async () => {
@@ -456,6 +477,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
                     name: "__proto__",
                 }),
             });
+            expect(result).toHaveProperty("success", true);
         });
 
         it("should handle null character in different positions", async () => {
@@ -468,6 +490,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
             const result = await registerUser(formData);
 
             expect(mockBcrypt.hash).toHaveBeenCalledWith("pass\x00word", 12);
+            expect(result).toHaveProperty("success", true);
         });
     });
 });

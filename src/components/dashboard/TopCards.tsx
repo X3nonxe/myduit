@@ -1,7 +1,7 @@
 "use client";
 
 import { GlassCard } from "@/components/ui/GlassCard";
-import { Wallet, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getTransactionSummary } from "@/actions/transactions";
 

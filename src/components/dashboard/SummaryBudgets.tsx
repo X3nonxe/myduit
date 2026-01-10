@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import { getBudgets } from "@/actions/budgets";
 import { Loader2 } from "lucide-react";
 
-export const SummaryBudgets = ({ onSeeAll }: { onSeeAll: () => void }) => {
-    const [budgets, setBudgets] = useState<any[]>([]);
+interface Budget {
+    id: string;
+    category: string;
+    amount: number;
+}
+
+export const SummaryBudgets = () => {
+    const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

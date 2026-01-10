@@ -1,10 +1,11 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { TransactionType } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { SessionUser } from "@/lib/utils";
+import { Prisma, TransactionType } from "@prisma/client";
 
 export async function addTransaction(data: {
   amount: number;
@@ -16,7 +17,7 @@ export async function addTransaction(data: {
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   try {
     // DIAGNOSTIC LOG
@@ -28,7 +29,7 @@ export async function addTransaction(data: {
     const accountId = data.account_id === "" ? null : data.account_id;
 
     // Use Prisma transaction to prevent race conditions
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const transaction = await tx.transaction.create({
         data: {
           amount: data.amount,
@@ -43,7 +44,7 @@ export async function addTransaction(data: {
 
       // Update account balance if account_id is provided
       if (accountId) {
-        const amount = data.type === "INCOME" ? data.amount : -data.amount;
+        const amount = data.type === TransactionType.INCOME ? data.amount : -data.amount;
         const account = await tx.account.findFirst({
           where: { id: accountId, user_id: userId }
         });
@@ -64,16 +65,17 @@ export async function addTransaction(data: {
 
     revalidatePath("/dashboard");
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DEBUG_ERROR: Failed to add transaction:", error);
-    return { error: error.message || "Gagal menyimpan transaksi." };
+    const message = error instanceof Error ? error.message : "Gagal menyimpan transaksi.";
+    return { error: message };
   }
 }
 
 export async function deleteTransaction(id: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   await prisma.transaction.delete({
     where: { id, user_id: userId },
@@ -91,7 +93,7 @@ export async function updateTransaction(id: string, data: {
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   const transaction = await prisma.transaction.update({
     where: { id, user_id: userId },
@@ -105,7 +107,7 @@ export async function updateTransaction(id: string, data: {
 export async function getTransactions() {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   return await prisma.transaction.findMany({
     where: { user_id: userId },
@@ -117,7 +119,7 @@ export async function getTransactions() {
 export async function getDashboardStats(filter: "week" | "month" | "year") {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   if (filter === "week") {
     return await prisma.$queryRaw`
@@ -162,7 +164,7 @@ export async function getDashboardStats(filter: "week" | "month" | "year") {
 export async function getTransactionSummary() {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as any).id;
+  const userId = (session.user as SessionUser).id;
 
   const totals = await prisma.transaction.groupBy({
     by: ["type"],
@@ -170,8 +172,8 @@ export async function getTransactionSummary() {
     where: { user_id: userId },
   });
 
-  const income = totals.find((t) => t.type === "INCOME")?._sum.amount || 0;
-  const expense = totals.find((t) => t.type === "EXPENSE")?._sum.amount || 0;
+  const income = totals.find((t: typeof totals[number]) => t.type === TransactionType.INCOME)?._sum.amount || 0;
+  const expense = totals.find((t: typeof totals[number]) => t.type === TransactionType.EXPENSE)?._sum.amount || 0;
 
   return {
     income,

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { ArrowRight, Mail, Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { registerUser } from "@/actions/register";
 
 interface AuthCardProps {
@@ -15,7 +14,6 @@ interface AuthCardProps {
 
 export const AuthCard = ({ type }: AuthCardProps) => {
     const isLogin = type === "login";
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -27,7 +25,6 @@ export const AuthCard = ({ type }: AuthCardProps) => {
         const formData = new FormData(e.currentTarget);
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
-        const name = formData.get("name") as string;
 
         if (isLogin) {
             const result = await signIn("credentials", {

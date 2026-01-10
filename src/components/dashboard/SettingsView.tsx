@@ -1,6 +1,7 @@
 "use client";
 // main ui
 import { GlassCard } from "@/components/ui/GlassCard";
+import Image from "next/image";
 import {
     User,
     Shield,
@@ -19,6 +20,7 @@ import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 import { updateProfile, changePassword } from "@/actions/user";
+import { SessionUser } from "@/lib/utils";
 
 export const SettingsView = () => {
     const { data: session } = useSession();
@@ -120,7 +122,7 @@ export const SettingsView = () => {
         }
     ];
 
-    const profileImage = (session?.user as any)?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${session?.user?.name || 'Bryan'}`;
+    const profileImage = (session?.user as SessionUser)?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${session?.user?.name || 'Bryan'}`;
 
     return (
         <div className="max-w-4xl mx-auto space-y-10">
@@ -129,10 +131,11 @@ export const SettingsView = () => {
 
                 <div className="relative group cursor-pointer" onClick={() => setIsProfileModalOpen(true)}>
                     <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-[#f9f8f4] shadow-xl relative">
-                        <img
+                        <Image
                             src={profileImage}
                             alt="Profile"
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                         />
                     </div>
                     <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -205,7 +208,7 @@ export const SettingsView = () => {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase text-[#6b6b6b]">URL Foto Profil (Opsional)</label>
-                                <input name="image" defaultValue={(session?.user as any)?.image || ""} placeholder="https://..." className="w-full p-3 rounded-xl border border-[#e5e2da] focus:border-[#d97757] outline-none" />
+                                <input name="image" defaultValue={(session?.user as SessionUser)?.image || ""} placeholder="https://..." className="w-full p-3 rounded-xl border border-[#e5e2da] focus:border-[#d97757] outline-none" />
                             </div>
                             {message.text && (
                                 <div className={`p-3 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>

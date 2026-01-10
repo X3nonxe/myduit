@@ -5,11 +5,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BudgetInput } from "@/lib/validation";
+import { SessionUser } from "@/lib/utils";
 
 export async function getBudgets() {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as any).id;
+    const userId = (session.user as SessionUser).id;
 
     return await prisma.budget.findMany({
         where: { user_id: userId },
@@ -19,7 +20,7 @@ export async function getBudgets() {
 
 export async function addBudget(data: BudgetInput) {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = (session?.user as SessionUser)?.id;
 
     if (!userId) return { error: "Sesi tidak valid." };
 
@@ -33,7 +34,7 @@ export async function addBudget(data: BudgetInput) {
 
         revalidatePath("/dashboard");
         return { success: true, data: budget };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DEBUG_ERROR: Failed to add budget. UserId:", userId, "Data:", data, "Error:", error);
         return { error: "Gagal membuat anggaran." };
     }
@@ -41,7 +42,7 @@ export async function addBudget(data: BudgetInput) {
 
 export async function deleteBudget(id: string) {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
+    const userId = (session?.user as SessionUser)?.id;
 
     if (!userId) return { error: "Sesi tidak valid." };
 
@@ -52,7 +53,7 @@ export async function deleteBudget(id: string) {
 
         revalidatePath("/dashboard");
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DEBUG_ERROR: Failed to delete budget:", error);
         return { error: "Gagal menghapus anggaran." };
     }

@@ -11,14 +11,22 @@ import {
     ArrowDownLeft,
     RefreshCcw,
     Search,
-    Filter,
     Download
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface Transaction {
+    id: string;
+    category: string;
+    date: Date | string;
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    amount: number;
+    description?: string | null;
+}
+
 export const TransactionsView = () => {
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState("ALL");
@@ -44,7 +52,7 @@ export const TransactionsView = () => {
         try {
             await deleteTransaction(id);
             fetchData();
-        } catch (error) {
+        } catch {
             alert("Gagal menghapus transaksi.");
         }
     };

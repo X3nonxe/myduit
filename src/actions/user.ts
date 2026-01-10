@@ -5,11 +5,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { SessionUser } from "@/lib/utils";
 
 export async function updateProfile(data: { name: string; image?: string }) {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as any).id;
+    const userId = (session.user as SessionUser).id;
 
     try {
         await prisma.user.update({
@@ -22,7 +23,7 @@ export async function updateProfile(data: { name: string; image?: string }) {
 
         revalidatePath("/dashboard");
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DEBUG_ERROR: Failed to update profile:", error);
         return { error: "Gagal memperbarui profil." };
     }
@@ -31,7 +32,7 @@ export async function updateProfile(data: { name: string; image?: string }) {
 export async function changePassword(data: { oldPassword: string; newPassword: string }) {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as any).id;
+    const userId = (session.user as SessionUser).id;
 
     try {
         const user = await prisma.user.findUnique({
@@ -52,7 +53,7 @@ export async function changePassword(data: { oldPassword: string; newPassword: s
         });
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("DEBUG_ERROR: Failed to change password:", error);
         return { error: "Gagal mengubah kata sandi." };
     }

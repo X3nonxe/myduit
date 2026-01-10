@@ -9,16 +9,23 @@ import {
     Loader2,
     AlertCircle,
     CheckCircle2,
-    Calendar,
-    ChevronRight,
     Target
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
+interface Budget {
+    id: string;
+    category: string;
+    amount: number;
+    period: string;
+    start_date: Date | string;
+    end_date: Date | string;
+}
+
 export const BudgetsView = () => {
-    const [budgets, setBudgets] = useState<any[]>([]);
+    const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -54,7 +61,7 @@ export const BudgetsView = () => {
             });
             setIsAdding(false);
             fetchData();
-        } catch (error) {
+        } catch {
             alert("Gagal menambah anggaran.");
         } finally {
             setSaving(false);
@@ -66,7 +73,7 @@ export const BudgetsView = () => {
         try {
             await deleteBudget(id);
             fetchData();
-        } catch (error) {
+        } catch {
             alert("Gagal menghapus anggaran.");
         }
     };

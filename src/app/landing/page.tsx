@@ -225,7 +225,7 @@ export default function LandingPage() {
                         Siap Mengambil Kendali Penuh Masa Depan Anda?
                     </h2>
                     <p className="text-white/60 text-xl leading-relaxed max-w-2xl mx-auto">
-                        Bergabunglah dengan ribuan pengguna yang telah bertransformasi dari sekadar "mengeluarkannya" menjadi "mengelolanya" dengan MyDuitGua.
+                        Bergabunglah dengan ribuan pengguna yang telah bertransformasi dari sekadar &quot;mengeluarkannya&quot; menjadi &quot;mengelolanya&quot; dengan MyDuitGua.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                         <Link href="/register" className="px-12 py-5 bg-white text-[#1d1d1b] rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-2xl">
