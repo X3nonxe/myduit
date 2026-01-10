@@ -69,7 +69,7 @@ export default function DashboardPage() {
                                     <h4 className="text-sm font-semibold text-[#1d1d1b]">Daftar Akun</h4>
                                     <button onClick={() => setActiveTab("Akun & Kartu")} className="text-xs text-[#d97757] font-medium hover:underline">Semua</button>
                                 </div>
-                                <SummaryAccounts onSeeAll={() => setActiveTab("Akun & Kartu")} />
+                                <SummaryAccounts />
                             </GlassCard>
 
                             <GlassCard className="p-5 border-[#e5e2da]">
@@ -77,7 +77,7 @@ export default function DashboardPage() {
                                     <h4 className="text-sm font-semibold text-[#1d1d1b]">Anggaran Bulan Ini</h4>
                                     <button onClick={() => setActiveTab("Anggaran")} className="text-xs text-[#d97757] font-medium hover:underline">Atur</button>
                                 </div>
-                                <SummaryBudgets onSeeAll={() => setActiveTab("Anggaran")} />
+                                <SummaryBudgets />
                             </GlassCard>
 
                             <GlassCard className="p-5 border-[#e5e2da]">
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                                     <h4 className="text-sm font-semibold text-[#1d1d1b]">Target Menabung</h4>
                                     <button onClick={() => setActiveTab("Target")} className="text-xs text-[#d97757] font-medium hover:underline">Tambah</button>
                                 </div>
-                                <SummaryGoals onSeeAll={() => setActiveTab("Target")} />
+                                <SummaryGoals />
                             </GlassCard>
                         </section>
 
