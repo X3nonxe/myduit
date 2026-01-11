@@ -361,7 +361,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         it("should handle simultaneous password change requests", async () => {
             let callCount = 0;
 
-            mockPrismaUserFindUnique.mockImplementation(async () => {
+            (prisma.user.findUnique as jest.Mock).mockImplementation(async () => {
                 callCount++;
                 await new Promise(resolve => setTimeout(resolve, 10));
                 return {

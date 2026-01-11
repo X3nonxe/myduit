@@ -17,6 +17,19 @@ export async function getAccounts() {
     });
 }
 
+// Allowed account types
+const ALLOWED_ACCOUNT_TYPES = ["bank", "cash", "e-wallet", "credit_card", "other"] as const;
+
+// Validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_TYPE_LENGTH = 50;
+const MAX_BALANCE = Number.MAX_SAFE_INTEGER;
+
+// Check for control characters (0x00-0x1F and 0x7F)
+function hasControlCharacters(str: string): boolean {
+    return /[\x00-\x1F\x7F]/.test(str);
+}
+
 export async function addAccount(data: {
     name: string;
     type: string;
@@ -30,14 +43,61 @@ export async function addAccount(data: {
         return { error: "Sesi tidak valid. Silakan login kembali." };
     }
 
+    // Validate name
+    const trimmedName = data.name?.trim() ?? "";
+    if (!trimmedName) {
+        return { error: "Nama akun tidak boleh kosong." };
+    }
+    if (trimmedName.length > MAX_NAME_LENGTH) {
+        return { error: `Nama akun tidak boleh lebih dari ${MAX_NAME_LENGTH} karakter.` };
+    }
+    if (hasControlCharacters(trimmedName)) {
+        return { error: "Nama akun mengandung karakter yang tidak valid." };
+    }
+
+    // Validate type
+    const trimmedType = data.type?.trim().toLowerCase() ?? "";
+    if (!trimmedType) {
+        return { error: "Tipe akun tidak boleh kosong." };
+    }
+    if (trimmedType.length > MAX_TYPE_LENGTH) {
+        return { error: `Tipe akun tidak boleh lebih dari ${MAX_TYPE_LENGTH} karakter.` };
+    }
+    if (!ALLOWED_ACCOUNT_TYPES.includes(trimmedType as typeof ALLOWED_ACCOUNT_TYPES[number])) {
+        return { error: `Tipe akun tidak valid. Pilih: ${ALLOWED_ACCOUNT_TYPES.join(", ")}.` };
+    }
+
+    // Validate balance
+    if (typeof data.balance !== "number" || !Number.isFinite(data.balance)) {
+        return { error: "Saldo harus berupa angka yang valid." };
+    }
+    if (data.balance < 0) {
+        return { error: "Saldo tidak boleh negatif." };
+    }
+    if (data.balance > MAX_BALANCE) {
+        return { error: "Saldo melebihi batas maksimum." };
+    }
+
     try {
-        if (!prisma.account) {
-            console.error("PRISMA_DIAGNOSTIC: prisma.account is UNDEFINED. Available models:", Object.keys(prisma).filter(k => k[0] === k[0].toLowerCase()));
+        // Check for duplicate account name for this user
+        const existingAccount = await prisma.account.findFirst({
+            where: {
+                user_id: String(userId),
+                name: {
+                    equals: trimmedName,
+                    mode: "insensitive",
+                },
+            },
+        });
+
+        if (existingAccount) {
+            return { error: "Akun dengan nama tersebut sudah ada." };
         }
+
         const account = await prisma.account.create({
             data: {
-                name: data.name,
-                type: data.type,
+                name: trimmedName,
+                type: trimmedType,
                 balance: data.balance,
                 user_id: String(userId),
             },
@@ -57,10 +117,19 @@ export async function deleteAccount(id: string) {
 
     if (!userId) return { error: "Sesi tidak valid." };
 
+    // Validate ID
+    const trimmedId = id?.trim() ?? "";
+    if (!trimmedId) {
+        return { error: "ID akun tidak valid." };
+    }
+    if (hasControlCharacters(trimmedId)) {
+        return { error: "ID akun mengandung karakter yang tidak valid." };
+    }
+
     try {
         // Check if account has transactions
         const hasTransactions = await prisma.transaction.findFirst({
-            where: { account_id: id, user_id: String(userId) },
+            where: { account_id: trimmedId, user_id: String(userId) },
         });
 
         if (hasTransactions) {
@@ -68,7 +137,7 @@ export async function deleteAccount(id: string) {
         }
 
         await prisma.account.delete({
-            where: { id, user_id: String(userId) },
+            where: { id: trimmedId, user_id: String(userId) },
         });
 
         revalidatePath("/dashboard");
