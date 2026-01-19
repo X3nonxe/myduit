@@ -20,6 +20,32 @@ export async function addTransaction(data: {
   const userId = (session.user as SessionUser).id;
 
   try {
+    // Validate amount
+    if (typeof data.amount !== 'number' || !isFinite(data.amount)) {
+      return { error: "Amount must be a valid number." };
+    }
+
+    if (data.amount < 0) {
+      return { error: "Amount cannot be negative." };
+    }
+
+    if (data.amount > Number.MAX_SAFE_INTEGER) {
+      return { error: "Amount exceeds maximum allowed value." };
+    }
+
+    // Validate account_id length if provided
+    if (data.account_id && data.account_id.length > 255) {
+      return { error: "Account ID is too long." };
+    }
+
+    // Validate category
+    if (!data.category || data.category.trim().length === 0) {
+      return { error: "Category cannot be empty." };
+    }
+
+    if (data.category.length > 100) {
+      return { error: "Category is too long." };
+    }
     // DIAGNOSTIC LOG
     if (!prisma.transaction) {
       console.error("PRISMA_DIAGNOSTIC: prisma.transaction is UNDEFINED. Available models:", Object.keys(prisma).filter(k => k[0] === k[0].toLowerCase()));
@@ -77,11 +103,16 @@ export async function deleteTransaction(id: string) {
   if (!session?.user) throw new Error("Unauthorized");
   const userId = (session.user as SessionUser).id;
 
-  await prisma.transaction.delete({
-    where: { id, user_id: userId },
-  });
+  try {
+    await prisma.transaction.delete({
+      where: { id, user_id: userId },
+    });
 
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard");
+  } catch (error: unknown) {
+    console.error("Failed to delete transaction:", error);
+    throw new Error("Failed to delete transaction. Transaction may not exist.");
+  }
 }
 
 export async function updateTransaction(id: string, data: {
@@ -120,6 +151,12 @@ export async function getDashboardStats(filter: "week" | "month" | "year") {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
   const userId = (session.user as SessionUser).id;
+
+  // Validate filter parameter
+  const validFilters = ["week", "month", "year"];
+  if (!validFilters.includes(filter)) {
+    throw new Error("Invalid filter value. Must be 'week', 'month', or 'year'.");
+  }
 
   if (filter === "week") {
     return await prisma.$queryRaw`
