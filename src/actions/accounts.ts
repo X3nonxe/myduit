@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { SessionUser } from "@/lib/utils";
+import { accountSchema } from "@/lib/validation";
 
 export async function getAccounts() {
     const session = await getServerSession(authOptions);
@@ -17,15 +18,8 @@ export async function getAccounts() {
     });
 }
 
-// Allowed account types
-const ALLOWED_ACCOUNT_TYPES = ["bank", "cash", "e-wallet", "credit_card", "other"] as const;
-
-// Validation constants
-const MAX_NAME_LENGTH = 100;
-const MAX_TYPE_LENGTH = 50;
 const MAX_BALANCE = Number.MAX_SAFE_INTEGER;
 
-// Check for control characters (0x00-0x1F and 0x7F)
 function hasControlCharacters(str: string): boolean {
     return /[\x00-\x1F\x7F]/.test(str);
 }
@@ -43,43 +37,20 @@ export async function addAccount(data: {
         return { error: "Sesi tidak valid. Silakan login kembali." };
     }
 
-    // Validate name
-    const trimmedName = data.name?.trim() ?? "";
-    if (!trimmedName) {
-        return { error: "Nama akun tidak boleh kosong." };
-    }
-    if (trimmedName.length > MAX_NAME_LENGTH) {
-        return { error: `Nama akun tidak boleh lebih dari ${MAX_NAME_LENGTH} karakter.` };
-    }
-    if (hasControlCharacters(trimmedName)) {
-        return { error: "Nama akun mengandung karakter yang tidak valid." };
+    const safeData = {
+        ...data,
+        type: typeof data.type === 'string' ? data.type.trim().toLowerCase() : data.type,
+    };
+    const validatedFields = accountSchema.safeParse(safeData);
+    if (!validatedFields.success) {
+        return { error: validatedFields.error.errors[0].message };
     }
 
-    // Validate type
-    const trimmedType = data.type?.trim().toLowerCase() ?? "";
-    if (!trimmedType) {
-        return { error: "Tipe akun tidak boleh kosong." };
-    }
-    if (trimmedType.length > MAX_TYPE_LENGTH) {
-        return { error: `Tipe akun tidak boleh lebih dari ${MAX_TYPE_LENGTH} karakter.` };
-    }
-    if (!ALLOWED_ACCOUNT_TYPES.includes(trimmedType as typeof ALLOWED_ACCOUNT_TYPES[number])) {
-        return { error: `Tipe akun tidak valid. Pilih: ${ALLOWED_ACCOUNT_TYPES.join(", ")}.` };
-    }
-
-    // Validate balance
-    if (typeof data.balance !== "number" || !Number.isFinite(data.balance)) {
-        return { error: "Saldo harus berupa angka yang valid." };
-    }
-    if (data.balance < 0) {
-        return { error: "Saldo tidak boleh negatif." };
-    }
-    if (data.balance > MAX_BALANCE) {
-        return { error: "Saldo melebihi batas maksimum." };
-    }
+    const { name, type, balance } = validatedFields.data;
+    const trimmedName = name;
+    const trimmedType = type;
 
     try {
-        // Check for duplicate account name for this user
         const existingAccount = await prisma.account.findFirst({
             where: {
                 user_id: String(userId),
@@ -117,7 +88,6 @@ export async function deleteAccount(id: string) {
 
     if (!userId) return { error: "Sesi tidak valid." };
 
-    // Validate ID
     const trimmedId = id?.trim() ?? "";
     if (!trimmedId) {
         return { error: "ID akun tidak valid." };
@@ -127,7 +97,6 @@ export async function deleteAccount(id: string) {
     }
 
     try {
-        // Check if account has transactions
         const hasTransactions = await prisma.transaction.findFirst({
             where: { account_id: trimmedId, user_id: String(userId) },
         });

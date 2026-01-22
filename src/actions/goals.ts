@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { SessionUser } from "@/lib/utils";
+import { goalSchema } from "@/lib/validation";
 
 export async function getGoals() {
     const session = await getServerSession(authOptions);
@@ -28,40 +29,12 @@ export async function addGoal(data: {
 
     if (!userId) return { error: "Sesi tidak valid." };
 
-    // Validate target_amount
-    if (typeof data.target_amount !== "number" || !isFinite(data.target_amount)) {
-        return { error: "Target amount must be a valid number." };
-    }
-    if (data.target_amount < 0) {
-        return { error: "Target amount cannot be negative." };
-    }
-    if (data.target_amount > Number.MAX_SAFE_INTEGER) {
-        return { error: "Target amount exceeds maximum allowed value." };
+    const validatedFields = goalSchema.safeParse(data);
+    if (!validatedFields.success) {
+        return { error: validatedFields.error.errors[0].message };
     }
 
-    // Validate current_amount
-    if (typeof data.current_amount !== "number" || !isFinite(data.current_amount)) {
-        return { error: "Current amount must be a valid number." };
-    }
-    if (data.current_amount < 0) {
-        return { error: "Current amount cannot be negative." };
-    }
-    if (data.current_amount > Number.MAX_SAFE_INTEGER) {
-        return { error: "Current amount exceeds maximum allowed value." };
-    }
-
-    // Validate name
-    if (!data.name || data.name.trim().length === 0) {
-        return { error: "Goal name cannot be empty." };
-    }
-    if (data.name.length > 255) {
-        return { error: "Goal name is too long." };
-    }
-
-    // Validate deadline if provided
-    if (data.deadline && (!(data.deadline instanceof Date) || isNaN(data.deadline.getTime()))) {
-        return { error: "Invalid deadline date." };
-    }
+    const { name, target_amount, current_amount, deadline } = validatedFields.data;
 
     try {
         const goal = await prisma.goal.create({
@@ -85,15 +58,9 @@ export async function updateGoalProgress(id: string, current_amount: number) {
 
     if (!userId) return { error: "Sesi tidak valid." };
 
-    // Validate current_amount
-    if (typeof current_amount !== "number" || !isFinite(current_amount)) {
-        return { error: "Current amount must be a valid number." };
-    }
-    if (current_amount < 0) {
-        return { error: "Current amount cannot be negative." };
-    }
-    if (current_amount > Number.MAX_SAFE_INTEGER) {
-        return { error: "Current amount exceeds maximum allowed value." };
+    const validatedCurrentAmount = goalSchema.shape.current_amount.safeParse(current_amount);
+    if (!validatedCurrentAmount.success) {
+        return { error: validatedCurrentAmount.error.errors[0].message };
     }
 
     try {

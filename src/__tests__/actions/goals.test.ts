@@ -25,17 +25,16 @@ jest.mock("next/cache", () => ({
 
 const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
 
-describe("Goal Actions - Absurd & Edge Case Tests", () => {
+describe("Goal Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default: authenticated user
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",
         });
     });
 
-    describe("Test #1: Target Amount Exceeding Planetary GDP", () => {
+    describe("Target Amount Exceeding Planetary GDP", () => {
         it("should reject target_amount exceeding Number.MAX_SAFE_INTEGER", async () => {
             const result = await addGoal({
                 name: "Buy the Solar System",
@@ -50,7 +49,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
             const mockGoal = {
                 id: "goal-float",
                 name: "Floating Point Test",
-                target_amount: 0.1 + 0.2, // JavaScript floating point weirdness
+                target_amount: 0.1 + 0.2,
                 current_amount: 0,
                 user_id: "user-123",
                 deadline: null,
@@ -69,7 +68,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #2: Negative and Special Numeric Values", () => {
+    describe("Negative and Special Numeric Values", () => {
         it("should reject negative target_amount", async () => {
             const result = await addGoal({
                 name: "Debt Goal",
@@ -77,7 +76,6 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
                 current_amount: 0,
             });
 
-            // Depends on implementation - may or may not validate
             expect(result).toBeDefined();
         });
 
@@ -112,7 +110,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #3: Extreme Goal Names with Unicode Exploits", () => {
+    describe("Extreme Goal Names with Unicode Exploits", () => {
         it("should handle goal name with emoji bombs and zero-width joiners", async () => {
             const unicodeChaos = "👨‍👩‍👧‍👦".repeat(50) + "\\u200B".repeat(200) + "﷽🕌🌙";
 
@@ -160,7 +158,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #4: SQL Injection Attempts in Goal Name", () => {
+    describe("SQL Injection Attempts in Goal Name", () => {
         const sqlInjections = [
             "'; DROP TABLE \\\"Goal\\\"; --",
             "' OR '1'='1",
@@ -189,13 +187,12 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
                     current_amount: 0,
                 });
 
-                // Prisma should protect against SQL injection
                 expect(result).toBeDefined();
             });
         });
     });
 
-    describe("Test #5: Time Travel Deadlines", () => {
+    describe("Time Travel Deadlines", () => {
         it("should handle deadline in the year 1900", async () => {
             const ancientDeadline = new Date("1900-01-01");
 
@@ -258,7 +255,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #6: Current Amount Exceeding Target Amount", () => {
+    describe("Current Amount Exceeding Target Amount", () => {
         it("should allow current_amount to be 1000x the target_amount", async () => {
             const mockGoal = {
                 id: "goal-overachiever",
@@ -300,7 +297,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #7: Concurrent Goal Operations (Race Conditions)", () => {
+    describe("Concurrent Goal Operations (Race Conditions)", () => {
         it("should handle 50 concurrent goal creations", async () => {
             let callCount = 0;
             (prisma.goal.create as jest.Mock).mockImplementation(() => {
@@ -355,7 +352,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #8: Delete Non-Existent or Already Deleted Goal", () => {
+    describe("Delete Non-Existent or Already Deleted Goal", () => {
         it("should handle deleting goal that doesn't exist", async () => {
             (prisma.goal.delete as jest.Mock).mockRejectedValue(
                 new Error("Record to delete does not exist")
@@ -369,7 +366,6 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         it("should handle deleting same goal twice", async () => {
             const goalId = "goal-double-delete";
 
-            // First delete succeeds
             (prisma.goal.delete as jest.Mock).mockResolvedValueOnce({
                 id: goalId,
                 name: "Test Goal",
@@ -383,7 +379,6 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
             const firstDelete = await deleteGoal(goalId);
             expect(firstDelete).toHaveProperty("success");
 
-            // Second delete fails
             (prisma.goal.delete as jest.Mock).mockRejectedValueOnce(
                 new Error("Record to delete does not exist")
             );
@@ -393,7 +388,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #9: Type Coercion and Prototype Pollution Attempts", () => {
+    describe("Type Coercion and Prototype Pollution Attempts", () => {
         it("should handle stringified number as target_amount", async () => {
             const result = await addGoal({
                 name: "Type Confusion",
@@ -441,7 +436,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #10: Zero and Micro-Amount Goals", () => {
+    describe("Zero and Micro-Amount Goals", () => {
         it("should handle goal with zero target_amount", async () => {
             const mockGoal = {
                 id: "goal-zero",
@@ -505,7 +500,7 @@ describe("Goal Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Bonus: Unauthorized Access Tests", () => {
+    describe("Unauthorized Access Tests", () => {
         it("should reject goal creation when user is not authenticated", async () => {
             mockGetServerSession.mockResolvedValueOnce(null);
 

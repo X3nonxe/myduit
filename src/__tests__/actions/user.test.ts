@@ -3,7 +3,6 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 
-// Mock dependencies
 jest.mock("next-auth", () => ({
     getServerSession: jest.fn(),
 }));
@@ -33,17 +32,16 @@ const mockPrismaUserFindUnique = prisma.user.findUnique as jest.MockedFunction<t
 const mockBcryptCompare = bcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>;
 const mockBcryptHash = bcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>;
 
-describe("User Actions - Absurd & Edge Case Tests", () => {
+describe("User Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default: authenticated user
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",
         });
     });
 
-    describe("Test #1: Extremely Long Name (Buffer Overflow Attack)", () => {
+    describe("Extremely Long Name (Buffer Overflow Attack)", () => {
         it("should REJECT name exceeding 255 characters", async () => {
             const longName = "A".repeat(256);
 
@@ -78,7 +76,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #2: SQL/NoSQL Injection", () => {
+    describe("SQL/NoSQL Injection", () => {
         const injectionPayloads = [
             "'; DROP TABLE User; --",
             "' OR '1'='1",
@@ -101,13 +99,12 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
 
                 const result = await updateProfile({ name: payload });
 
-                // Prisma properly escapes SQL - these should succeed
                 expect(result).toEqual({ success: true });
             });
         });
     });
 
-    describe("Test #3: XSS via Image URL (NOW BLOCKED)", () => {
+    describe("XSS via Image URL (NOW BLOCKED)", () => {
         const xssPayloads = [
             { payload: "javascript:alert('XSS')", reason: "javascript: scheme" },
             { payload: "data:text/html,<script>alert('hacked')</script>", reason: "data: scheme" },
@@ -175,7 +172,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #4: Unicode Null Byte & Control Characters (NOW BLOCKED)", () => {
+    describe("Unicode Null Byte & Control Characters (NOW BLOCKED)", () => {
         const blockedPayloads = [
             { payload: "User\x00Name", desc: "Null byte" },
             { payload: "User\x1FName", desc: "Control char 0x1F" },
@@ -193,7 +190,6 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
             });
         });
 
-        // These are allowed (harmless unicode)
         const allowedPayloads = [
             { payload: "\uFEFFUser", desc: "BOM" },
             { payload: "User\u200BName", desc: "Zero-width space" },
@@ -218,7 +214,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #5: Prototype Pollution Attack", () => {
+    describe("Prototype Pollution Attack", () => {
         it("should not allow prototype pollution via __proto__", async () => {
             const maliciousData = {
                 name: "Normal Name",
@@ -249,7 +245,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #6: Same Old and New Password (NOW BLOCKED)", () => {
+    describe("Same Old and New Password (NOW BLOCKED)", () => {
         it("should REJECT identical old and new passwords", async () => {
             const samePassword = "MySecurePassword123!";
 
@@ -264,7 +260,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #7: Empty String Password (NOW BLOCKED)", () => {
+    describe("Empty String Password (NOW BLOCKED)", () => {
         it("should REJECT empty string as new password", async () => {
             const result = await changePassword({
                 oldPassword: "correctOldPassword",
@@ -297,7 +293,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Test #8: Valid Passwords with Special Characters", () => {
+    describe("Valid Passwords with Special Characters", () => {
         it("should ACCEPT password with unicode characters", async () => {
             const unicodePassword = "MyP@ssw0rd🔥";
 
@@ -350,14 +346,14 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
 
             const result = await changePassword({
                 oldPassword: "correctOldPassword",
-                newPassword: "12345678", // exactly 8 chars
+                newPassword: "12345678", 
             });
 
             expect(result).toEqual({ success: true });
         });
     });
 
-    describe("Test #9: Concurrent Password Changes (Race Condition)", () => {
+    describe("Concurrent Password Changes (Race Condition)", () => {
         it("should handle simultaneous password change requests", async () => {
             let callCount = 0;
 
@@ -386,20 +382,18 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
                 created_at: new Date(),
             });
 
-            // Execute 3 password changes simultaneously with DIFFERENT passwords
             const results = await Promise.all([
                 changePassword({ oldPassword: "oldPass12", newPassword: "newPass11" }),
                 changePassword({ oldPassword: "oldPass12", newPassword: "newPass22" }),
                 changePassword({ oldPassword: "oldPass12", newPassword: "newPass33" }),
             ]);
 
-            // All should succeed because they all saw the original password
             expect(results.every(r => r.success === true)).toBe(true);
             expect(callCount).toBe(3);
         });
     });
 
-    describe("Test #10: Extremely Long Password (DoS Attack - NOW BLOCKED)", () => {
+    describe("Extremely Long Password (DoS Attack - NOW BLOCKED)", () => {
         it("should REJECT password exceeding 128 characters", async () => {
             const longPassword = "X".repeat(129);
 
@@ -444,7 +438,7 @@ describe("User Actions - Absurd & Edge Case Tests", () => {
         });
     });
 
-    describe("Bonus: Authentication Edge Cases", () => {
+    describe("Authentication Edge Cases", () => {
         it("should throw error when no session exists", async () => {
             mockGetServerSession.mockResolvedValue(null);
 

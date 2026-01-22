@@ -3,14 +3,22 @@
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function registerUser(formData: FormData) {
-    const email = (formData.get("email") as string)?.toLowerCase();
-    const password = formData.get("password") as string;
-    const name = formData.get("name") as string;
+import { registerSchema } from "@/lib/validation";
 
-    if (!email || !password) {
-        return { error: "Missing fields" };
+export async function registerUser(formData: FormData) {
+    const rawData = {
+        name: formData.get("name") as string,
+        email: (formData.get("email") as string)?.toLowerCase(),
+        password: formData.get("password") as string,
+    };
+
+    const validation = registerSchema.safeParse(rawData);
+
+    if (!validation.success) {
+        return { error: validation.error.issues[0].message };
     }
+
+    const { name, email, password } = validation.data;
 
     const existingUser = await prisma.user.findUnique({
         where: { email },

@@ -23,7 +23,7 @@ jest.mock("next/cache", () => ({
 
 const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
 
-describe("Budget Actions - Absurd & Edge Case Tests", () => {
+describe("Budget Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockGetServerSession.mockResolvedValue({

@@ -1,6 +1,5 @@
 import { registerUser } from "@/actions/register";
 
-// Mock Prisma
 jest.mock("@/lib/prisma", () => ({
     __esModule: true,
     default: {
@@ -11,7 +10,6 @@ jest.mock("@/lib/prisma", () => ({
     },
 }));
 
-// Mock bcrypt
 jest.mock("bcryptjs", () => ({
     hash: jest.fn().mockResolvedValue("hashed_password"),
 }));
@@ -22,7 +20,7 @@ import bcrypt from "bcryptjs";
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
-describe("registerUser - Absurd & Edge Cases", () => {
+describe("Register Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
@@ -33,7 +31,6 @@ describe("registerUser - Absurd & Edge Cases", () => {
         });
     });
 
-    // Helper function to create FormData
     const createFormData = (data: Record<string, string>): FormData => {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
@@ -42,7 +39,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
         return formData;
     };
 
-    describe("1. Email dengan Unicode/Emoji", () => {
+    describe("Email dengan Unicode/Emoji", () => {
         it("should handle email with emoji characters", async () => {
             const formData = createFormData({
                 email: "user🔥💀@gmail.com",
@@ -52,13 +49,11 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-                where: { email: "user🔥💀@gmail.com" },
-            });
-            expect(result).toHaveProperty("success", true);
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+            expect(result).toHaveProperty("error", "Email tidak valid.");
         });
 
-        it("should handle email with special unicode characters", async () => {
+        it("should reject email with special unicode characters if invalid format", async () => {
             const formData = createFormData({
                 email: "üser@dömain.com",
                 password: "password123",
@@ -67,12 +62,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+            expect(result).toHaveProperty("error", "Email tidak valid.");
         });
     });
 
-    describe("2. Null Byte Injection", () => {
+    describe("Null Byte Injection", () => {
         it("should handle email with null byte character", async () => {
             const formData = createFormData({
                 email: "admin@gmail.com\x00@evil.com",
@@ -82,14 +77,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            const calledEmail = (mockPrisma.user.findUnique as jest.Mock).mock
-                .calls[0][0].where.email;
-            expect(calledEmail).toContain("\x00");
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
     });
 
-    describe("3. Password dengan Panjang Ekstrem", () => {
+    describe("Password dengan Panjang Ekstrem", () => {
         it("should handle extremely long password (potential DoS)", async () => {
             const extremelyLongPassword = "a".repeat(100_000); // 100KB password
 
@@ -101,11 +94,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockBcrypt.hash).toHaveBeenCalledWith(
-                extremelyLongPassword,
-                12
-            );
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Kata sandi maksimal 128 karakter.");
+            expect(mockBcrypt.hash).not.toHaveBeenCalled();
         });
 
         it("should handle password with only 1 character", async () => {
@@ -117,11 +107,11 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Kata sandi minimal 8 karakter.");
         });
     });
 
-    describe("4. Type Confusion", () => {
+    describe("Type Confusion", () => {
         it("should handle email that looks like object toString", async () => {
             const formData = createFormData({
                 email: "[object Object]",
@@ -131,10 +121,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-                where: { email: "[object object]" }, // toLowerCase applied
-            });
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
 
         it("should handle multiple values for same key", async () => {
@@ -153,16 +141,16 @@ describe("registerUser - Absurd & Edge Cases", () => {
         });
     });
 
-    describe("5. Wrong Key Names (Case Sensitivity)", () => {
+    describe("Wrong Key Names (Case Sensitivity)", () => {
         it("should fail when keys have wrong casing", async () => {
             const formData = new FormData();
-            formData.set("Email", "test@test.com"); // Capital E
-            formData.set("Password", "password123"); // Capital P
-            formData.set("Name", "Wrong Case User"); // Capital N
+            formData.set("Email", "test@test.com");
+            formData.set("Password", "password123");
+            formData.set("Name", "Wrong Case User");
 
             const result = await registerUser(formData);
 
-            expect(result).toEqual({ error: "Missing fields" });
+            expect(result).toHaveProperty("error");
         });
 
         it("should fail when keys are completely wrong", async () => {
@@ -173,11 +161,11 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(result).toEqual({ error: "Missing fields" });
+            expect(result).toHaveProperty("error");
         });
     });
 
-    describe("6. Empty String vs Null/Undefined", () => {
+    describe("Empty String vs Null/Undefined", () => {
         it("should reject empty string as email", async () => {
             const formData = createFormData({
                 email: "",
@@ -187,7 +175,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(result).toEqual({ error: "Missing fields" });
+            expect(result).toHaveProperty("error", "Email tidak valid.");
         });
 
         it("should reject empty string as password", async () => {
@@ -199,7 +187,7 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(result).toEqual({ error: "Missing fields" });
+            expect(result).toHaveProperty("error", "Kata sandi tidak boleh kosong.");
         });
 
         it("should accept empty name (no validation)", async () => {
@@ -211,16 +199,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.create).toHaveBeenCalledWith({
-                data: expect.objectContaining({
-                    name: "",
-                }),
-            });
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Nama tidak boleh kosong.");
+            expect(mockPrisma.user.create).not.toHaveBeenCalled();
         });
     });
 
-    describe("7. SQL/NoSQL Injection", () => {
+    describe("SQL/NoSQL Injection", () => {
         it("should handle SQL injection in email", async () => {
             const formData = createFormData({
                 email: "'; DROP TABLE users; --",
@@ -230,10 +214,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-                where: { email: "'; drop table users; --" },
-            });
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
 
         it("should handle NoSQL injection attempt", async () => {
@@ -245,8 +227,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
 
         it("should handle LDAP injection attempt", async () => {
@@ -258,12 +240,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
     });
 
-    describe("8. XSS/HTML Injection", () => {
+    describe("XSS/HTML Injection", () => {
         it("should handle XSS script tag in name", async () => {
             const xssPayload = '<script>alert("XSS")</script>';
 
@@ -311,12 +293,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
     });
 
-    describe("9. Race Condition - Double Registration", () => {
+    describe("Race Condition - Double Registration", () => {
         it("should potentially allow duplicate registration in race condition", async () => {
             let _callCount = 0;
             (mockPrisma.user.findUnique as jest.Mock).mockImplementation(
@@ -360,48 +342,44 @@ describe("registerUser - Absurd & Edge Cases", () => {
         });
     });
 
-    describe("10. Whitespace-Only Values", () => {
+    describe("Whitespace-Only Values", () => {
         it("should reject password with only spaces", async () => {
             const formData = createFormData({
                 email: "whitespace@test.com",
-                password: "     ", // Only spaces
+                password: "     ",
                 name: "Whitespace Password User",
             });
 
             const result = await registerUser(formData);
 
-            expect(mockBcrypt.hash).toHaveBeenCalledWith("     ", 12);
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Kata sandi tidak boleh kosong.");
+            expect(mockBcrypt.hash).not.toHaveBeenCalled();
         });
 
         it("should accept name with only whitespace", async () => {
             const formData = createFormData({
                 email: "spacename@test.com",
                 password: "password123",
-                name: "   ", // Only spaces
+                name: "   ",
             });
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.create).toHaveBeenCalledWith({
-                data: expect.objectContaining({
-                    name: "   ",
-                }),
-            });
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Nama tidak boleh kosong.");
+            expect(mockPrisma.user.create).not.toHaveBeenCalled();
         });
 
         it("should handle tabs and newlines in password", async () => {
             const formData = createFormData({
                 email: "tabpass@test.com",
-                password: "\t\n\r", // Only whitespace characters
+                password: "\t\n\r",
                 name: "Tab Password User",
             });
 
             const result = await registerUser(formData);
 
-            expect(mockBcrypt.hash).toHaveBeenCalledWith("\t\n\r", 12);
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Kata sandi tidak boleh kosong.");
+            expect(mockBcrypt.hash).not.toHaveBeenCalled();
         });
 
         it("should handle mixed unicode whitespace", async () => {
@@ -416,12 +394,12 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockBcrypt.hash).toHaveBeenCalledWith(unicodeWhitespace, 12);
-            expect(result).toHaveProperty("success", true);
+            expect(mockBcrypt.hash).not.toHaveBeenCalled();
+            expect(result).toHaveProperty("error", "Kata sandi tidak boleh kosong.");
         });
     });
 
-    describe("Bonus: Additional Edge Cases", () => {
+    describe("Additional Edge Cases", () => {
         it("should handle extremely long email", async () => {
             const longEmail = "a".repeat(1000) + "@test.com";
 
@@ -433,8 +411,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
 
         it("should handle email without @ symbol", async () => {
@@ -446,8 +424,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.create).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.create).not.toHaveBeenCalled();
         });
 
         it("should handle email with multiple @ symbols", async () => {
@@ -459,8 +437,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockPrisma.user.findUnique).toHaveBeenCalled();
-            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("error", "Email tidak valid.");
+            expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
         });
 
         it("should handle prototype pollution attempt in name", async () => {
@@ -489,8 +467,8 @@ describe("registerUser - Absurd & Edge Cases", () => {
 
             const result = await registerUser(formData);
 
-            expect(mockBcrypt.hash).toHaveBeenCalledWith("pass\x00word", 12);
-            expect(result).toHaveProperty("success", true);
+            expect(mockBcrypt.hash).not.toHaveBeenCalled();
+            expect(result).toHaveProperty("error", "Nama mengandung karakter yang tidak valid.");
         });
     });
 });

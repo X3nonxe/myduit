@@ -2,7 +2,6 @@ import { getAccounts, addAccount, deleteAccount } from "@/actions/accounts";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
-// Mock dependencies
 jest.mock("next-auth", () => ({
     getServerSession: jest.fn(),
 }));
@@ -33,19 +32,17 @@ const mockPrismaAccountCreate = prisma.account.create as jest.MockedFunction<typ
 const mockPrismaAccountDelete = prisma.account.delete as jest.MockedFunction<typeof prisma.account.delete>;
 const mockPrismaTransactionFindFirst = prisma.transaction.findFirst as jest.MockedFunction<typeof prisma.transaction.findFirst>;
 
-describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () => {
+describe("Account Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default: authenticated user
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",
         });
-        // Default: no duplicate accounts
         mockPrismaAccountFindFirst.mockResolvedValue(null);
     });
 
-    describe("Test #1: Balance dengan Nilai Infinity (NOW BLOCKED)", () => {
+    describe("Balance dengan Nilai Infinity (NOW BLOCKED)", () => {
         it("should REJECT Infinity balance", async () => {
             const result = await addAccount({
                 name: "Rekening Infinity",
@@ -54,7 +51,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
             });
 
             expect(result).toHaveProperty("error");
-            expect(result.error).toBe("Saldo harus berupa angka yang valid.");
+            expect(result.error).toBe("Saldo melebihi batas maksimum.");
             expect(mockPrismaAccountCreate).not.toHaveBeenCalled();
         });
 
@@ -66,12 +63,12 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
             });
 
             expect(result).toHaveProperty("error");
-            expect(result.error).toBe("Saldo harus berupa angka yang valid.");
+            expect(result.error).toBe("Saldo tidak boleh negatif.");
             expect(mockPrismaAccountCreate).not.toHaveBeenCalled();
         });
     });
 
-    describe("Test #2: Balance dengan NaN (NOW BLOCKED)", () => {
+    describe("Balance dengan NaN (NOW BLOCKED)", () => {
         it("should REJECT NaN balance", async () => {
             const result = await addAccount({
                 name: "Rekening NaN",
@@ -85,7 +82,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
 
         it("should REJECT balance from parseInt of invalid string", async () => {
-            const invalidBalance = parseInt("not-a-number", 10); // Returns NaN
+            const invalidBalance = parseInt("not-a-number", 10);
 
             const result = await addAccount({
                 name: "Parsed Invalid",
@@ -98,7 +95,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #3: Name dengan String Kosong atau Whitespace Only (NOW BLOCKED)", () => {
+    describe("Name dengan String Kosong atau Whitespace Only (NOW BLOCKED)", () => {
         it("should REJECT empty string name", async () => {
             const result = await addAccount({
                 name: "",
@@ -130,7 +127,6 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
             });
 
             expect(result).toHaveProperty("error");
-            // Either empty after trim or control char error
             expect(result.error).toMatch(/tidak boleh kosong|tidak valid/);
         });
 
@@ -146,7 +142,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #4: SQL Injection / NoSQL Injection Attempts (STILL SAFE)", () => {
+    describe("SQL Injection / NoSQL Injection Attempts (STILL SAFE)", () => {
         const injectionPayloads = [
             "'; DROP TABLE account; --",
             "' OR '1'='1",
@@ -175,13 +171,12 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
                     balance: 1000,
                 });
 
-                // Prisma uses parameterized queries, should be safe
                 expect(result.success).toBe(true);
             });
         });
     });
 
-    describe("Test #5: Delete Account dengan ID yang Tidak Exist", () => {
+    describe("Delete Account dengan ID yang Tidak Exist", () => {
         it("should handle deleting non-existent account ID", async () => {
             mockPrismaTransactionFindFirst.mockResolvedValue(null);
             mockPrismaAccountDelete.mockRejectedValue(
@@ -212,7 +207,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #6: ID dengan Karakter Special/Unicode (CONTROL CHARS BLOCKED)", () => {
+    describe("ID dengan Karakter Special/Unicode (CONTROL CHARS BLOCKED)", () => {
         it("should REJECT ID with null bytes", async () => {
             const result = await deleteAccount("\x00\x00\x00");
 
@@ -234,7 +229,6 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
 
             const result = await deleteAccount("💀🔥😈");
 
-            // This is technically allowed, will fail at database level
             expect(result).toHaveProperty("error");
             expect(result.error).toBe("Gagal menghapus akun.");
         });
@@ -249,7 +243,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #7: Balance dengan Angka Negatif (NOW BLOCKED)", () => {
+    describe("Balance dengan Angka Negatif (NOW BLOCKED)", () => {
         it("should REJECT negative balance", async () => {
             const result = await addAccount({
                 name: "Hutang Unlimited",
@@ -301,7 +295,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #8: Name dengan String Sangat Panjang (NOW BLOCKED)", () => {
+    describe("Name dengan String Sangat Panjang (NOW BLOCKED)", () => {
         it("should REJECT name exceeding 100 characters", async () => {
             const longName = "A".repeat(101);
 
@@ -337,7 +331,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #9: Type Validation (NOW ENFORCED)", () => {
+    describe("Type Validation (NOW ENFORCED)", () => {
         it("should REJECT invalid account type", async () => {
             const result = await addAccount({
                 name: "Test Account",
@@ -357,7 +351,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
             });
 
             expect(result).toHaveProperty("error");
-            expect(result.error).toBe("Tipe akun tidak boleh kosong.");
+            expect(result.error).toBe("Tipe akun tidak valid. Pilih: bank, cash, e-wallet, credit_card, other.");
         });
 
         const validTypes = ["bank", "cash", "e-wallet", "credit_card", "other"];
@@ -402,7 +396,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Test #10: Duplicate Account Name (NOW BLOCKED)", () => {
+    describe("Duplicate Account Name (NOW BLOCKED)", () => {
         it("should REJECT duplicate account name for same user", async () => {
             mockPrismaAccountFindFirst.mockResolvedValue({
                 id: "existing-acc",
@@ -465,7 +459,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Bonus: Authentication Edge Cases", () => {
+    describe("Authentication Edge Cases", () => {
         it("should throw error when no session exists for getAccounts", async () => {
             mockGetServerSession.mockResolvedValue(null);
 
@@ -510,7 +504,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Bonus: Delete Account with Transactions", () => {
+    describe("Delete Account with Transactions", () => {
         it("should prevent deletion when account has transactions", async () => {
             mockPrismaTransactionFindFirst.mockResolvedValue({
                 id: "txn-123",
@@ -531,7 +525,7 @@ describe("Account Actions - 10 Absurd & Edge Case Tests (With Validation)", () =
         });
     });
 
-    describe("Bonus: Valid Operations Should Succeed", () => {
+    describe("Valid Operations Should Succeed", () => {
         it("should successfully get accounts", async () => {
             const mockAccounts = [
                 { id: "acc-1", name: "Account 1", type: "bank", balance: 1000, user_id: "user-123", created_at: new Date() },

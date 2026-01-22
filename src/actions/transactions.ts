@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { SessionUser } from "@/lib/utils";
 import { Prisma, TransactionType } from "@prisma/client";
+import { transactionSchema } from "@/lib/validation";
 
 export async function addTransaction(data: {
   amount: number;
@@ -20,41 +21,18 @@ export async function addTransaction(data: {
   const userId = (session.user as SessionUser).id;
 
   try {
-    // Validate amount
-    if (typeof data.amount !== 'number' || !isFinite(data.amount)) {
-      return { error: "Amount must be a valid number." };
+    const validatedFields = transactionSchema.safeParse(data);
+    if (!validatedFields.success) {
+      return { error: validatedFields.error.errors[0].message };
     }
 
-    if (data.amount < 0) {
-      return { error: "Amount cannot be negative." };
-    }
-
-    if (data.amount > Number.MAX_SAFE_INTEGER) {
-      return { error: "Amount exceeds maximum allowed value." };
-    }
-
-    // Validate account_id length if provided
-    if (data.account_id && data.account_id.length > 255) {
-      return { error: "Account ID is too long." };
-    }
-
-    // Validate category
-    if (!data.category || data.category.trim().length === 0) {
-      return { error: "Category cannot be empty." };
-    }
-
-    if (data.category.length > 100) {
-      return { error: "Category is too long." };
-    }
-    // DIAGNOSTIC LOG
+    const { amount, type, category, date, description, account_id } = validatedFields.data;
     if (!prisma.transaction) {
       console.error("PRISMA_DIAGNOSTIC: prisma.transaction is UNDEFINED. Available models:", Object.keys(prisma).filter(k => k[0] === k[0].toLowerCase()));
     }
 
-    // Handle empty string account_id
     const accountId = data.account_id === "" ? null : data.account_id;
 
-    // Use Prisma transaction to prevent race conditions
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const transaction = await tx.transaction.create({
         data: {
@@ -68,7 +46,6 @@ export async function addTransaction(data: {
         },
       });
 
-      // Update account balance if account_id is provided
       if (accountId) {
         const amount = data.type === TransactionType.INCOME ? data.amount : -data.amount;
         const account = await tx.account.findFirst({
@@ -152,7 +129,6 @@ export async function getDashboardStats(filter: "week" | "month" | "year") {
   if (!session?.user) throw new Error("Unauthorized");
   const userId = (session.user as SessionUser).id;
 
-  // Validate filter parameter
   const validFilters = ["week", "month", "year"];
   if (!validFilters.includes(filter)) {
     throw new Error("Invalid filter value. Must be 'week', 'month', or 'year'.");
@@ -183,7 +159,6 @@ export async function getDashboardStats(filter: "week" | "month" | "year") {
       ORDER BY name
     `;
   } else {
-    // Year filter - group by month
     return await prisma.$queryRaw`
       SELECT 
         to_char(date, 'Mon') as name,

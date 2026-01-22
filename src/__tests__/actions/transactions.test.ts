@@ -3,7 +3,6 @@ import { TransactionType } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
-// Mock dependencies
 jest.mock("next-auth", () => ({
     getServerSession: jest.fn(),
 }));
@@ -36,14 +35,13 @@ const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getS
 describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default: authenticated user
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",
         });
     });
 
-    describe("Test #1: Amount Exceeds MAX_SAFE_INTEGER (NOW BLOCKED)", () => {
+    describe("Amount Exceeds MAX_SAFE_INTEGER (NOW BLOCKED)", () => {
         it("should REJECT amount exceeding Number.MAX_SAFE_INTEGER", async () => {
             const result = await addTransaction({
                 amount: Number.MAX_SAFE_INTEGER + 1,
@@ -92,7 +90,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #2: Negative Amount (NOW BLOCKED)", () => {
+    describe("Negative Amount (NOW BLOCKED)", () => {
         it("should REJECT negative amount for INCOME type", async () => {
             const result = await addTransaction({
                 amount: -1000000,
@@ -155,7 +153,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #3: SQL Injection Attempts (STILL SAFE)", () => {
+    describe("SQL Injection Attempts (STILL SAFE)", () => {
         const injectionPayloads = [
             "'; DROP TABLE \"Transaction\"; --",
             "' OR '1'='1",
@@ -193,14 +191,13 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
                     description: "SQL injection attempt"
                 });
 
-                // Prisma uses parameterized queries, should be safe
                 expect(result).toBeDefined();
                 expect(result).not.toHaveProperty("error");
             });
         });
     });
 
-    describe("Test #4: Extreme Date Values", () => {
+    describe("Extreme Date Values", () => {
         it("should handle future date (year 2099)", async () => {
             const mockTransaction = {
                 id: "txn-future",
@@ -277,7 +274,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #5: Race Condition with Concurrent Transactions", () => {
+    describe("Race Condition with Concurrent Transactions", () => {
         it("should handle 100 concurrent transactions to same account", async () => {
             const account_id = "race-condition-account";
 
@@ -310,7 +307,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #6: Account ID Length Validation (NOW BLOCKED)", () => {
+    describe("Account ID Length Validation (NOW BLOCKED)", () => {
         it("should REJECT account ID exceeding 255 characters", async () => {
             const result = await addTransaction({
                 amount: 1000,
@@ -364,7 +361,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #7: Unicode Exploits in Description", () => {
+    describe("Unicode Exploits in Description", () => {
         it("should handle description with emoji bombs and zero-width characters", async () => {
             const unicodeHell = "👨‍👩‍👧‍👦".repeat(100) + "\u200B".repeat(100) + "﷽".repeat(10);
 
@@ -401,7 +398,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #8: Special Numeric Values (NOW BLOCKED)", () => {
+    describe("Special Numeric Values (NOW BLOCKED)", () => {
         it("should REJECT NaN amount", async () => {
             const result = await addTransaction({
                 amount: NaN,
@@ -426,7 +423,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
 
             expect(result).toHaveProperty("error");
             if ("error" in result) {
-                expect(result.error).toBe("Amount must be a valid number.");
+                expect(result.error).toBe("Amount exceeds maximum allowed value.");
             }
         });
 
@@ -440,7 +437,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
 
             expect(result).toHaveProperty("error");
             if ("error" in result) {
-                expect(result.error).toBe("Amount must be a valid number.");
+                expect(result.error).toBe("Amount cannot be negative.");
             }
         });
 
@@ -459,7 +456,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #9: Invalid Filter Values for getDashboardStats (NOW BLOCKED)", () => {
+    describe("Invalid Filter Values for getDashboardStats (NOW BLOCKED)", () => {
         const invalidFilters = [
             "__proto__" as unknown as "week" | "month" | "year",
             "constructor" as unknown as "week" | "month" | "year",
@@ -495,7 +492,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #10: Delete Non-Existent Transaction (NOW HANDLES ERRORS)", () => {
+    describe("Delete Non-Existent Transaction (NOW HANDLES ERRORS)", () => {
         it("should handle deleting transaction that doesn't exist", async () => {
             (prisma.transaction.delete as jest.Mock).mockRejectedValue(
                 new Error("Record to delete does not exist")
@@ -536,11 +533,9 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
 
             const id = (created as { id: string }).id;
 
-            // First delete succeeds
             (prisma.transaction.delete as jest.Mock).mockResolvedValueOnce(mockTransaction);
             await deleteTransaction(id);
 
-            // Second delete fails
             (prisma.transaction.delete as jest.Mock).mockRejectedValueOnce(
                 new Error("Record to delete does not exist")
             );
@@ -548,7 +543,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Test #11: Type Coercion Attack", () => {
+    describe("Type Coercion Attack", () => {
         it("should handle stringified number as amount", async () => {
             const result = await addTransaction({
                 amount: "1000" as unknown as number,
@@ -557,8 +552,6 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
                 date: new Date(),
             });
 
-            // TypeScript prevents this, but at runtime it might coerce
-            // Depending on Prisma's behavior
             expect(result).toBeDefined();
         });
 
@@ -574,7 +567,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
         });
     });
 
-    describe("Bonus: Category Validation (NOW ENFORCED)", () => {
+    describe("Category Validation (NOW ENFORCED)", () => {
         it("should REJECT empty category", async () => {
             const result = await addTransaction({
                 amount: 1000,
