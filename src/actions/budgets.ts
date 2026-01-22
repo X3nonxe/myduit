@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { BudgetInput } from "@/lib/validation";
+import { BudgetInput, budgetSchema } from "@/lib/validation";
 import { SessionUser } from "@/lib/utils";
 
 export async function getBudgets() {
@@ -23,6 +23,31 @@ export async function addBudget(data: BudgetInput) {
     const userId = (session?.user as SessionUser)?.id;
 
     if (!userId) return { error: "Sesi tidak valid." };
+
+    // 1. Validate Schema with Zod
+    const validatedFields = budgetSchema.safeParse(data);
+    if (!validatedFields.success) {
+        return { error: "Data tidak valid." };
+    }
+
+    const { amount, start_date, end_date } = validatedFields.data;
+
+    // 2. Additional Edge Case Validation
+
+    // Astronomical Amount & Infinity Check
+    if (!Number.isSafeInteger(amount) || amount > Number.MAX_SAFE_INTEGER || amount === Infinity) {
+        return { error: "Jumlah anggaran terlalu besar." };
+    }
+
+    // Quantum Time Reversal (Start > End)
+    if (start_date > end_date) {
+        return { error: "Tanggal mulai tidak boleh lebih besar dari tanggal selesai." };
+    }
+
+    // The Void (NaN check - though Zod usually catches this)
+    if (Number.isNaN(amount)) {
+        return { error: "Jumlah tidak valid." };
+    }
 
     try {
         const budget = await prisma.budget.create({
