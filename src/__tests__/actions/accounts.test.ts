@@ -14,6 +14,7 @@ jest.mock("@/lib/prisma", () => ({
             findFirst: jest.fn(),
             create: jest.fn(),
             delete: jest.fn(),
+            count: jest.fn(),
         },
         transaction: {
             findFirst: jest.fn(),
@@ -532,10 +533,14 @@ describe("Account Actions", () => {
                 { id: "acc-2", name: "Account 2", type: "cash", balance: 500, user_id: "user-123", created_at: new Date() },
             ];
             mockPrismaAccountFindMany.mockResolvedValue(mockAccounts);
+            (prisma.account.count as jest.Mock).mockResolvedValue(2);
 
             const result = await getAccounts();
 
-            expect(result).toEqual(mockAccounts);
+            expect(result.accounts).toEqual(mockAccounts);
+            expect(result.total).toBe(2);
+            expect(result.page).toBe(1);
+            expect(result.pageSize).toBe(20);
         });
 
         it("should successfully add account with valid data", async () => {

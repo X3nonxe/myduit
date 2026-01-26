@@ -19,7 +19,7 @@ export const SummaryGoals = () => {
         const fetchData = async () => {
             try {
                 const data = await getGoals();
-                setGoals(data.slice(0, 1));
+                setGoals(data.goals.slice(0, 1));
             } catch (error) {
                 console.error(error);
             } finally {

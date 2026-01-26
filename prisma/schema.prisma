@@ -22,16 +22,17 @@ model User {
 }
 
 model Account {
-  id            String        @id @default(cuid())
-  name          String        // e.g., "Cash", "BCA", "GoPay"
-  type          String        // "BANK", "CASH", "E-WALLET"
-  balance       Float         @default(0)
-  user_id       String
-  user          User          @relation(fields: [user_id], references: [id])
-  transactions  Transaction[]
-  created_at    DateTime      @default(now())
+  id           String        @id @default(cuid())
+  name         String // e.g., "Cash", "BCA", "GoPay"
+  type         String // "BANK", "CASH", "E-WALLET"
+  balance      Float         @default(0)
+  user_id      String
+  user         User          @relation(fields: [user_id], references: [id])
+  transactions Transaction[]
+  created_at   DateTime      @default(now())
 
   @@index([user_id])
+  @@index([user_id, name])
 }
 
 model Transaction {
@@ -42,25 +43,26 @@ model Transaction {
   account     Account?        @relation(fields: [account_id], references: [id])
   amount      Float
   type        TransactionType
-  category    String          // Simplified for now, or link to a Category model
+  category    String // Simplified for now, or link to a Category model
   date        DateTime
   description String?
   created_at  DateTime        @default(now())
 
   @@index([user_id])
   @@index([account_id])
+  @@index([user_id, date, type])
 }
 
 model Budget {
-  id          String    @id @default(cuid())
-  user_id     String
-  user        User      @relation(fields: [user_id], references: [id])
-  category    String
-  amount      Float
-  period      String    // "MONTHLY", "WEEKLY"
-  start_date  DateTime
-  end_date    DateTime
-  created_at  DateTime  @default(now())
+  id         String   @id @default(cuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  category   String
+  amount     Float
+  period     String // "MONTHLY", "WEEKLY"
+  start_date DateTime
+  end_date   DateTime
+  created_at DateTime @default(now())
 
   @@index([user_id])
 }

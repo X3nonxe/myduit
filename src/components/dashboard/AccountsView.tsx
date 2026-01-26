@@ -32,7 +32,7 @@ export const AccountsView = () => {
         setLoading(true);
         try {
             const data = await getAccounts();
-            setAccounts(data);
+            setAccounts(data.accounts);
         } catch (error) {
             console.error("Failed to fetch accounts:", error);
         } finally {

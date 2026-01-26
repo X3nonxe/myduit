@@ -7,15 +7,22 @@ import { revalidatePath } from "next/cache";
 import { SessionUser } from "@/lib/utils";
 import { accountSchema } from "@/lib/validation";
 
-export async function getAccounts() {
+export async function getAccounts(page = 1, pageSize = 20) {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
     const userId = (session.user as SessionUser).id;
 
-    return await prisma.account.findMany({
-        where: { user_id: userId },
-        orderBy: { created_at: "desc" },
-    });
+    const [accounts, total] = await Promise.all([
+        prisma.account.findMany({
+            where: { user_id: userId },
+            orderBy: { created_at: "desc" },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        }),
+        prisma.account.count({ where: { user_id: userId } }),
+    ]);
+
+    return { accounts, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
 const MAX_BALANCE = Number.MAX_SAFE_INTEGER;

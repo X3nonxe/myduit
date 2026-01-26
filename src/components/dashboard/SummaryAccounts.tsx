@@ -19,7 +19,7 @@ export const SummaryAccounts = () => {
         const fetchData = async () => {
             try {
                 const data = await getAccounts();
-                setAccounts(data.slice(0, 3));
+                setAccounts(data.accounts.slice(0, 3));
             } catch (error) {
                 console.error(error);
             } finally {

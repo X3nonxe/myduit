@@ -27,7 +27,7 @@ export const AddTransactionModal = () => {
             const fetchAccounts = async () => {
                 try {
                     const data = await getAccounts();
-                    setAccounts(data);
+                    setAccounts(data.accounts);
                 } catch (err) {
                     console.error("Failed to fetch accounts:", err);
                 }

@@ -7,15 +7,22 @@ import { revalidatePath } from "next/cache";
 import { SessionUser } from "@/lib/utils";
 import { goalSchema } from "@/lib/validation";
 
-export async function getGoals() {
+export async function getGoals(page = 1, pageSize = 20) {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
     const userId = (session.user as SessionUser).id;
 
-    return await prisma.goal.findMany({
-        where: { user_id: userId },
-        orderBy: { created_at: "desc" },
-    });
+    const [goals, total] = await Promise.all([
+        prisma.goal.findMany({
+            where: { user_id: userId },
+            orderBy: { created_at: "desc" },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        }),
+        prisma.goal.count({ where: { user_id: userId } }),
+    ]);
+
+    return { goals, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
 export async function addGoal(data: {

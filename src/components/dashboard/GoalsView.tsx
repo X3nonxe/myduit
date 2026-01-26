@@ -35,7 +35,7 @@ export const GoalsView = () => {
         setLoading(true);
         try {
             const data = await getGoals();
-            setGoals(data);
+            setGoals(data.goals);
         } catch (error) {
             console.error("Failed to fetch goals:", error);
         } finally {

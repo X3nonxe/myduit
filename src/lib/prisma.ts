@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
     return new PrismaClient({
+        datasourceUrl: process.env.DIRECT_URL,
         log: ["query", "error", "warn", "info"],
     });
 };
