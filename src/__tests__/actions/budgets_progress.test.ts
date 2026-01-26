@@ -3,7 +3,6 @@ import { getBudgets } from "@/actions/budgets";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
-// Mock dependencies
 jest.mock("next-auth", () => ({
     getServerSession: jest.fn(),
 }));
@@ -33,7 +32,6 @@ describe("Budget Progress Calculation", () => {
     });
 
     it("should calculate spent amount correctly for a budget", async () => {
-        // Mock Budgets
         const mockBudgets = [
             {
                 id: "budget-1",
@@ -49,20 +47,6 @@ describe("Budget Progress Calculation", () => {
 
         (prisma.budget.findMany as jest.Mock).mockResolvedValue(mockBudgets);
 
-        // Mock Transaction Aggregation
-        // The implementation will likely use groupBy or aggregate.
-        // We'll assume the implementation uses groupBy for now as it's cleaner,
-        // but if we use aggregate we might need to adjust this mock.
-        // Let's assume the implementation will call groupBy or findMany.
-        // Actually, to trigger the calculation we expect the implementation to query transactions.
-
-        // Mocking the behavior we EXPECT the implementation to have:
-        // It should query transactions that match the budget criteria.
-
-        // Since we haven't implemented it yet, this test is expected to fail or return 0 spent depending on current implementation.
-        // But for the "fix", we expect it to return the calculated amount.
-
-        // Mock aggregate response
         (prisma.transaction.aggregate as jest.Mock).mockResolvedValue({
             _sum: { amount: 50000 },
         });
@@ -70,12 +54,7 @@ describe("Budget Progress Calculation", () => {
 
         const result = await getBudgets();
 
-        // The current implementation returns the Prisma result directly, which doesn't have 'spent'.
-        // So this test will verify that 'spent' exists and is correct after our changes.
-
-        // Note: The original returned type is strictly prisma.Budget. 
-        // We will extend it, so we cast to any or the Expected type for the test.
         expect(result[0]).toHaveProperty("spent");
-        expect((result[0] as any).spent).toBe(50000);
+        expect((result[0] as unknown as { spent: number }).spent).toBe(50000);
     });
 });
