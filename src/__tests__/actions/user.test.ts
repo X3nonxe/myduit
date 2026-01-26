@@ -35,6 +35,7 @@ const mockBcryptHash = bcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>;
 describe("User Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => { });
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",
@@ -346,7 +347,7 @@ describe("User Actions", () => {
 
             const result = await changePassword({
                 oldPassword: "correctOldPassword",
-                newPassword: "12345678", 
+                newPassword: "12345678",
             });
 
             expect(result).toEqual({ success: true });

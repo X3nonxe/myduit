@@ -28,6 +28,8 @@ jest.mock("@/lib/prisma", () => ({
 
 jest.mock("next/cache", () => ({
     revalidatePath: jest.fn(),
+    revalidateTag: jest.fn(),
+    unstable_cache: jest.fn((fn) => fn),
 }));
 
 const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
@@ -35,6 +37,7 @@ const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getS
 describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => { });
         mockGetServerSession.mockResolvedValue({
             user: { id: "user-123", email: "test@example.com", name: "Test User" },
             expires: "2099-12-31",

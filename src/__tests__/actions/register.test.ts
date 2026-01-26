@@ -23,6 +23,7 @@ const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 describe("Register Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.spyOn(console, 'error').mockImplementation(() => { });
         (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
         (mockPrisma.user.create as jest.Mock).mockResolvedValue({
             id: "test-user-id",
