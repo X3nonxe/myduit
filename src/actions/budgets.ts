@@ -7,15 +7,43 @@ import { revalidatePath } from "next/cache";
 import { BudgetInput, budgetSchema } from "@/lib/validation";
 import { SessionUser } from "@/lib/utils";
 
+import { TransactionType } from "@prisma/client";
+
 export async function getBudgets() {
     const session = await getServerSession(authOptions);
     if (!session?.user) throw new Error("Unauthorized");
     const userId = (session.user as SessionUser).id;
 
-    return await prisma.budget.findMany({
+    const budgets = await prisma.budget.findMany({
         where: { user_id: userId },
         orderBy: { created_at: "desc" },
     });
+
+    const budgetsWithProgress = await Promise.all(
+        budgets.map(async (budget) => {
+            const result = await prisma.transaction.aggregate({
+                _sum: {
+                    amount: true,
+                },
+                where: {
+                    user_id: userId,
+                    type: TransactionType.EXPENSE,
+                    category: budget.category,
+                    date: {
+                        gte: budget.start_date,
+                        lte: budget.end_date,
+                    },
+                },
+            });
+
+            return {
+                ...budget,
+                spent: result._sum.amount || 0,
+            };
+        })
+    );
+
+    return budgetsWithProgress;
 }
 
 export async function addBudget(data: BudgetInput) {
@@ -24,7 +52,6 @@ export async function addBudget(data: BudgetInput) {
 
     if (!userId) return { error: "Sesi tidak valid." };
 
-    // 1. Validate Schema with Zod
     const validatedFields = budgetSchema.safeParse(data);
     if (!validatedFields.success) {
         return { error: "Data tidak valid." };
@@ -32,19 +59,13 @@ export async function addBudget(data: BudgetInput) {
 
     const { amount, start_date, end_date } = validatedFields.data;
 
-    // 2. Additional Edge Case Validation
-
-    // Astronomical Amount & Infinity Check
     if (!Number.isSafeInteger(amount) || amount > Number.MAX_SAFE_INTEGER || amount === Infinity) {
         return { error: "Jumlah anggaran terlalu besar." };
     }
 
-    // Quantum Time Reversal (Start > End)
     if (start_date > end_date) {
         return { error: "Tanggal mulai tidak boleh lebih besar dari tanggal selesai." };
     }
-
-    // The Void (NaN check - though Zod usually catches this)
     if (Number.isNaN(amount)) {
         return { error: "Jumlah tidak valid." };
     }

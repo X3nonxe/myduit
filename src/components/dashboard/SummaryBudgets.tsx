@@ -8,6 +8,7 @@ interface Budget {
     id: string;
     category: string;
     amount: number;
+    spent?: number;
 }
 
 export const SummaryBudgets = () => {
@@ -42,7 +43,7 @@ export const SummaryBudgets = () => {
         <div className="space-y-4">
             {budgets.length > 0 ? (
                 budgets.map((budget) => {
-                    const used = 0; // Mock until we have aggregation
+                    const used = budget.spent || 0;
                     const percentage = Math.min((used / budget.amount) * 100, 100);
                     return (
                         <div key={budget.id} className="space-y-2">

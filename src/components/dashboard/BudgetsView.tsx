@@ -22,6 +22,7 @@ interface Budget {
     period: string;
     start_date: Date | string;
     end_date: Date | string;
+    spent?: number;
 }
 
 export const BudgetsView = () => {
@@ -163,7 +164,7 @@ export const BudgetsView = () => {
 
             <div className="grid grid-cols-1 gap-6">
                 {budgets.map((budget) => {
-                    const used = 0; // In real app, calculate from transactions
+                    const used = budget.spent || 0;
                     const percentage = Math.min((used / budget.amount) * 100, 100);
                     const isOver = used > budget.amount;
 
