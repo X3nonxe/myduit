@@ -30,7 +30,9 @@ export async function updateProfile(data: { name: string; image?: string }) {
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to update profile:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to update profile:", error);
+        }
         return { error: "Gagal memperbarui profil." };
     }
 }
@@ -68,7 +70,9 @@ export async function changePassword(data: { oldPassword: string; newPassword: s
 
         return { success: true };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to change password:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to change password:", error);
+        }
         return { error: "Gagal mengubah kata sandi." };
     }
 }

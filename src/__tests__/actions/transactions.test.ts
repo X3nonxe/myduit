@@ -502,7 +502,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
             );
 
             await expect(deleteTransaction("non-existent-id")).rejects.toThrow(
-                "Failed to delete transaction"
+                "Gagal menghapus transaksi."
             );
         });
 
@@ -542,7 +542,7 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
             (prisma.transaction.delete as jest.Mock).mockRejectedValueOnce(
                 new Error("Record to delete does not exist")
             );
-            await expect(deleteTransaction(id)).rejects.toThrow("Failed to delete transaction");
+            await expect(deleteTransaction(id)).rejects.toThrow("Gagal menghapus transaksi.");
         });
     });
 

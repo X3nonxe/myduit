@@ -57,7 +57,7 @@ export async function addBudget(data: BudgetInput) {
         return { error: "Data tidak valid." };
     }
 
-    const { amount, start_date, end_date } = validatedFields.data;
+    const { category, amount, period, start_date, end_date } = validatedFields.data;
 
     if (!Number.isSafeInteger(amount) || amount > Number.MAX_SAFE_INTEGER || amount === Infinity) {
         return { error: "Jumlah anggaran terlalu besar." };
@@ -73,7 +73,11 @@ export async function addBudget(data: BudgetInput) {
     try {
         const budget = await prisma.budget.create({
             data: {
-                ...data,
+                category,
+                amount,
+                period,
+                start_date,
+                end_date,
                 user_id: String(userId),
             },
         });
@@ -81,7 +85,9 @@ export async function addBudget(data: BudgetInput) {
         revalidatePath("/dashboard");
         return { success: true, data: budget };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to add budget. UserId:", userId, "Data:", data, "Error:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to add budget:", error);
+        }
         return { error: "Gagal membuat anggaran." };
     }
 }
@@ -100,7 +106,9 @@ export async function deleteBudget(id: string) {
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to delete budget:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to delete budget:", error);
+        }
         return { error: "Gagal menghapus anggaran." };
     }
 }

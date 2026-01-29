@@ -25,8 +25,6 @@ export async function getAccounts(page = 1, pageSize = 20) {
     return { accounts, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
-const MAX_BALANCE = Number.MAX_SAFE_INTEGER;
-
 function hasControlCharacters(str: string): boolean {
     return /[\x00-\x1F\x7F]/.test(str);
 }
@@ -40,7 +38,9 @@ export async function addAccount(data: {
     const userId = (session?.user as SessionUser | undefined)?.id;
 
     if (!userId) {
-        console.error("SESSION_ERROR: userId is missing from session");
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("SESSION_ERROR: userId is missing from session");
+        }
         return { error: "Sesi tidak valid. Silakan login kembali." };
     }
 
@@ -54,15 +54,13 @@ export async function addAccount(data: {
     }
 
     const { name, type, balance } = validatedFields.data;
-    const trimmedName = name;
-    const trimmedType = type;
 
     try {
         const existingAccount = await prisma.account.findFirst({
             where: {
                 user_id: String(userId),
                 name: {
-                    equals: trimmedName,
+                    equals: name,
                     mode: "insensitive",
                 },
             },
@@ -74,9 +72,9 @@ export async function addAccount(data: {
 
         const account = await prisma.account.create({
             data: {
-                name: trimmedName,
-                type: trimmedType,
-                balance: data.balance,
+                name,
+                type,
+                balance,
                 user_id: String(userId),
             },
         });
@@ -119,7 +117,9 @@ export async function deleteAccount(id: string) {
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to delete account:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to delete account:", error);
+        }
         return { error: "Gagal menghapus akun." };
     }
 }

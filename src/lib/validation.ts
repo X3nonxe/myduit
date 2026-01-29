@@ -94,7 +94,7 @@ export const transactionSchema = z.object({
         .min(0, "Amount cannot be negative.")
         .max(Number.MAX_SAFE_INTEGER, "Amount exceeds maximum allowed value.")
         .finite("Amount must be a valid number."),
-    type: z.enum(["INCOME", "EXPENSE"]),
+    type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
     category: z.string()
         .min(1, "Category cannot be empty.")
         .max(100, "Category is too long.")

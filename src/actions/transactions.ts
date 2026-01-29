@@ -27,37 +27,34 @@ export async function addTransaction(data: {
     }
 
     const { amount, type, category, date, description, account_id } = validatedFields.data;
-    if (!prisma.transaction) {
-      console.error("PRISMA_DIAGNOSTIC: prisma.transaction is UNDEFINED. Available models:", Object.keys(prisma).filter(k => k[0] === k[0].toLowerCase()));
-    }
-
-    const accountId = data.account_id === "" ? null : data.account_id;
+    const accountId = account_id === "" ? null : account_id;
 
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const transaction = await tx.transaction.create({
         data: {
-          amount: data.amount,
-          type: data.type,
-          category: data.category,
-          date: data.date,
-          description: data.description || null,
+          amount,
+          type,
+          category,
+          date,
+          description: description || null,
           account_id: accountId,
           user_id: userId,
         },
       });
 
-      if (accountId) {
-        const amount = data.type === TransactionType.INCOME ? data.amount : -data.amount;
+      // Only update account balance for INCOME and EXPENSE, not TRANSFER
+      if (accountId && type !== TransactionType.TRANSFER) {
+        const balanceChange = type === TransactionType.INCOME ? amount : -amount;
         const account = await tx.account.findFirst({
           where: { id: accountId, user_id: userId }
         });
-        if (!account) throw new Error("Account not found or not owned by user");
+        if (!account) throw new Error("Akun tidak ditemukan.");
 
         await tx.account.update({
           where: { id: accountId },
           data: {
             balance: {
-              increment: amount
+              increment: balanceChange
             }
           }
         });
@@ -70,7 +67,9 @@ export async function addTransaction(data: {
     revalidateTag("dashboard-stats", "default");
     return result;
   } catch (error: unknown) {
-    console.error("DEBUG_ERROR: Failed to add transaction:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("Failed to add transaction:", error);
+    }
     const message = error instanceof Error ? error.message : "Gagal menyimpan transaksi.";
     return { error: message };
   }
@@ -89,8 +88,10 @@ export async function deleteTransaction(id: string) {
     revalidatePath("/dashboard");
     revalidateTag("dashboard-stats", "default");
   } catch (error: unknown) {
-    console.error("Failed to delete transaction:", error);
-    throw new Error("Failed to delete transaction. Transaction may not exist.");
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("Failed to delete transaction:", error);
+    }
+    throw new Error("Gagal menghapus transaksi.");
   }
 }
 

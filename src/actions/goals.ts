@@ -46,7 +46,10 @@ export async function addGoal(data: {
     try {
         const goal = await prisma.goal.create({
             data: {
-                ...data,
+                name,
+                target_amount,
+                current_amount,
+                deadline,
                 user_id: String(userId),
             },
         });
@@ -54,7 +57,9 @@ export async function addGoal(data: {
         revalidatePath("/dashboard");
         return { success: true, data: goal };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to add goal. UserId:", userId, "Data:", data, "Error:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to add goal:", error);
+        }
         return { error: "Gagal membuat target." };
     }
 }
@@ -79,7 +84,9 @@ export async function updateGoalProgress(id: string, current_amount: number) {
         revalidatePath("/dashboard");
         return { success: true, data: goal };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to update goal:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to update goal:", error);
+        }
         return { error: "Gagal memperbarui progres." };
     }
 }
@@ -98,7 +105,9 @@ export async function deleteGoal(id: string) {
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error: unknown) {
-        console.error("DEBUG_ERROR: Failed to delete goal:", error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error("Failed to delete goal:", error);
+        }
         return { error: "Gagal menghapus target." };
     }
 }

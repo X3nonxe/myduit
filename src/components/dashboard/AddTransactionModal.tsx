@@ -9,6 +9,7 @@ import { addTransaction } from "@/actions/transactions";
 import { TransactionType } from "@prisma/client";
 
 import { getAccounts } from "@/actions/accounts";
+import { useRouter } from "next/navigation";
 
 interface Account {
     id: string;
@@ -17,6 +18,7 @@ interface Account {
 }
 
 export const AddTransactionModal = () => {
+    const router = useRouter();
     const { isAddModalOpen, setIsAddModalOpen } = useFinanceStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -62,10 +64,9 @@ export const AddTransactionModal = () => {
             if ('error' in result) {
                 setError(result.error);
             } else {
-                setIsAddModalOpen(false);
                 (e.target as HTMLFormElement).reset();
-                // Potentially trigger a refresh if not using revalidatePath correctly
-                window.location.reload();
+                router.refresh();
+                setIsAddModalOpen(false);
             }
         } catch {
             setError("Terjadi kesalahan sistem. Coba lagi.");
