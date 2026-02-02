@@ -21,6 +21,7 @@ export interface AuditMetadata {
     provider?: string;
     userAgent?: string;
     reason?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 

@@ -179,7 +179,7 @@ describe("User Actions", () => {
             { payload: "User\u0001\u0002Name", desc: "Multiple control chars" },
         ];
 
-        blockedPayloads.forEach(({ payload, desc }, index) => {
+        blockedPayloads.forEach(({ payload, desc }) => {
             it(`should REJECT name with ${desc}`, async () => {
                 const result = await updateProfile({ name: payload });
 

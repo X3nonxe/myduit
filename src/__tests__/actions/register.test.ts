@@ -301,10 +301,8 @@ describe("Register Actions", () => {
 
     describe("Race Condition - Double Registration", () => {
         it("should potentially allow duplicate registration in race condition", async () => {
-            let _callCount = 0;
             (mockPrisma.user.findUnique as jest.Mock).mockImplementation(
                 async () => {
-                    _callCount++;
                     return null;
                 }
             );

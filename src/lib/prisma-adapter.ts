@@ -1,5 +1,5 @@
-import { PrismaClient, Prisma } from "@prisma/client";
-import { Adapter, AdapterAccount, AdapterSession, AdapterUser } from "next-auth/adapters";
+import { PrismaClient } from "@prisma/client";
+import { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 
 export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
     return {
@@ -170,7 +170,7 @@ export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
             return token;
         },
 
-        async useVerificationToken({ identifier, token }) {
+        async useVerificationToken() {
             return null;
         },
     };
