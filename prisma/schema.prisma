@@ -9,16 +9,29 @@ datasource db {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  password_hash String
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password_hash String?
   name          String?
   image         String?
-  created_at    DateTime      @default(now())
-  accounts      Account[]
-  transactions  Transaction[]
-  budgets       Budget[]
-  goals         Goal[]
+  emailVerified DateTime?
+  created_at    DateTime  @default(now())
+
+  // 2FA fields (for Phase 3)
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String? // Encrypted TOTP secret
+  backupCodes      String[] // Hashed backup codes
+
+  // Relations - Financial
+  accounts     Account[]     @relation("UserAccounts")
+  transactions Transaction[]
+  budgets      Budget[]
+  goals        Goal[]
+
+  // Relations - Auth
+  oauthAccounts OAuthAccount[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
 }
 
 model Account {
@@ -27,7 +40,7 @@ model Account {
   type         String // "BANK", "CASH", "E-WALLET"
   balance      Float         @default(0)
   user_id      String
-  user         User          @relation(fields: [user_id], references: [id])
+  user         User          @relation("UserAccounts", fields: [user_id], references: [id])
   transactions Transaction[]
   created_at   DateTime      @default(now())
 
@@ -43,7 +56,7 @@ model Transaction {
   account     Account?        @relation(fields: [account_id], references: [id])
   amount      Float
   type        TransactionType
-  category    String // Simplified for now, or link to a Category model
+  category    String
   date        DateTime
   description String?
   created_at  DateTime        @default(now())
@@ -84,4 +97,55 @@ enum TransactionType {
   INCOME
   EXPENSE
   TRANSFER
+}
+
+model OAuthAccount {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  event     String
+  metadata  Json? 
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([event])
+  @@index([createdAt])
 }

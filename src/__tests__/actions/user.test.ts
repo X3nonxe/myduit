@@ -32,6 +32,32 @@ const mockPrismaUserFindUnique = prisma.user.findUnique as jest.MockedFunction<t
 const mockBcryptCompare = bcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>;
 const mockBcryptHash = bcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>;
 
+// Helper to create mock user with all required fields
+const createMockUser = (overrides: Partial<{
+    id: string;
+    email: string;
+    name: string | null;
+    image: string | null;
+    password_hash: string | null;
+    created_at: Date;
+    emailVerified: Date | null;
+    twoFactorEnabled: boolean;
+    twoFactorSecret: string | null;
+    backupCodes: string[];
+}> = {}) => ({
+    id: "user-123",
+    email: "test@example.com",
+    name: "Test",
+    image: null,
+    password_hash: "$2a$12$hashedpassword",
+    created_at: new Date(),
+    emailVerified: null,
+    twoFactorEnabled: false,
+    twoFactorSecret: null,
+    backupCodes: [],
+    ...overrides,
+});
+
 describe("User Actions", () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -59,14 +85,7 @@ describe("User Actions", () => {
         it("should ACCEPT name with exactly 255 characters", async () => {
             const maxLengthName = "A".repeat(255);
 
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: maxLengthName,
-                image: null,
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: maxLengthName, image: null, password_hash: "hash" }));
 
             const result = await updateProfile({
                 name: maxLengthName,
@@ -89,14 +108,7 @@ describe("User Actions", () => {
 
         injectionPayloads.forEach((payload, index) => {
             it(`should safely handle injection payload #${index + 1}: ${payload.substring(0, 30)}...`, async () => {
-                mockPrismaUserUpdate.mockResolvedValue({
-                    id: "user-123",
-                    email: "test@example.com",
-                    name: payload,
-                    image: null,
-                    password_hash: "hash",
-                    created_at: new Date(),
-                });
+                mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: payload, image: null, password_hash: "hash" }));
 
                 const result = await updateProfile({ name: payload });
 
@@ -137,14 +149,7 @@ describe("User Actions", () => {
         });
 
         it("should ACCEPT valid https URLs", async () => {
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Normal Name",
-                image: "https://example.com/avatar.png",
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Normal Name", image: "https://example.com/avatar.png", password_hash: "hash" }));
 
             const result = await updateProfile({
                 name: "Normal Name",
@@ -155,14 +160,7 @@ describe("User Actions", () => {
         });
 
         it("should ACCEPT relative URLs starting with /", async () => {
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Normal Name",
-                image: "/uploads/avatar.png",
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Normal Name", image: "/uploads/avatar.png", password_hash: "hash" }));
 
             const result = await updateProfile({
                 name: "Normal Name",
@@ -199,14 +197,7 @@ describe("User Actions", () => {
 
         allowedPayloads.forEach(({ payload, desc }) => {
             it(`should ACCEPT name with ${desc}`, async () => {
-                mockPrismaUserUpdate.mockResolvedValue({
-                    id: "user-123",
-                    email: "test@example.com",
-                    name: payload,
-                    image: null,
-                    password_hash: "hash",
-                    created_at: new Date(),
-                });
+                mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: payload, image: null, password_hash: "hash" }));
 
                 const result = await updateProfile({ name: payload });
 
@@ -223,14 +214,7 @@ describe("User Actions", () => {
                 __proto__: { isAdmin: true, role: "superadmin" },
             } as { name: string; image: string };
 
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Normal Name",
-                image: "https://example.com/avatar.png",
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Normal Name", image: "https://example.com/avatar.png", password_hash: "hash" }));
 
             const result = await updateProfile(maliciousData);
 
@@ -298,24 +282,10 @@ describe("User Actions", () => {
         it("should ACCEPT password with unicode characters", async () => {
             const unicodePassword = "MyP@ssw0rd🔥";
 
-            mockPrismaUserFindUnique.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$hashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserFindUnique.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$hashedpassword" }));
             mockBcryptCompare.mockResolvedValue(true as never);
             mockBcryptHash.mockResolvedValue("$2a$12$unicodehash" as never);
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$unicodehash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$unicodehash" }));
 
             const result = await changePassword({
                 oldPassword: "correctOldPassword",
@@ -326,24 +296,10 @@ describe("User Actions", () => {
         });
 
         it("should ACCEPT password with exactly 8 characters (minimum)", async () => {
-            mockPrismaUserFindUnique.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$hashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserFindUnique.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$hashedpassword" }));
             mockBcryptCompare.mockResolvedValue(true as never);
             mockBcryptHash.mockResolvedValue("$2a$12$minhash" as never);
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$minhash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$minhash" }));
 
             const result = await changePassword({
                 oldPassword: "correctOldPassword",
@@ -374,14 +330,7 @@ describe("User Actions", () => {
             mockBcryptHash.mockImplementation(async (password: string | number) => {
                 return `$2a$12$hash_${password}`;
             });
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$lasthash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$lasthash" }));
 
             const results = await Promise.all([
                 changePassword({ oldPassword: "oldPass12", newPassword: "newPass11" }),
@@ -411,24 +360,10 @@ describe("User Actions", () => {
         it("should ACCEPT password with exactly 128 characters (maximum)", async () => {
             const maxPassword = "X".repeat(128);
 
-            mockPrismaUserFindUnique.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$hashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserFindUnique.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$hashedpassword" }));
             mockBcryptCompare.mockResolvedValue(true as never);
             mockBcryptHash.mockResolvedValue("$2a$12$maxhash" as never);
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$maxhash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$maxhash" }));
 
             const result = await changePassword({
                 oldPassword: "correct12345",
@@ -470,14 +405,7 @@ describe("User Actions", () => {
         });
 
         it("should return error for incorrect old password", async () => {
-            mockPrismaUserFindUnique.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$hashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserFindUnique.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$hashedpassword" }));
             mockBcryptCompare.mockResolvedValue(false as never);
 
             const result = await changePassword({
@@ -505,14 +433,7 @@ describe("User Actions", () => {
 
     describe("Validation Success Cases", () => {
         it("should successfully update profile with valid data", async () => {
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "John Doe",
-                image: "https://example.com/avatar.png",
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "John Doe", image: "https://example.com/avatar.png", password_hash: "hash" }));
 
             const result = await updateProfile({
                 name: "John Doe",
@@ -530,24 +451,10 @@ describe("User Actions", () => {
         });
 
         it("should successfully change password with valid data", async () => {
-            mockPrismaUserFindUnique.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$hashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserFindUnique.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$hashedpassword" }));
             mockBcryptCompare.mockResolvedValue(true as never);
             mockBcryptHash.mockResolvedValue("$2a$12$newhashedpassword" as never);
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "Test",
-                image: null,
-                password_hash: "$2a$12$newhashedpassword",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "Test", image: null, password_hash: "$2a$12$newhashedpassword" }));
 
             const result = await changePassword({
                 oldPassword: "OldPassword123!",
@@ -559,14 +466,7 @@ describe("User Actions", () => {
         });
 
         it("should allow empty image (optional field)", async () => {
-            mockPrismaUserUpdate.mockResolvedValue({
-                id: "user-123",
-                email: "test@example.com",
-                name: "John Doe",
-                image: null,
-                password_hash: "hash",
-                created_at: new Date(),
-            });
+            mockPrismaUserUpdate.mockResolvedValue(createMockUser({ name: "John Doe", image: null, password_hash: "hash" }));
 
             const result = await updateProfile({
                 name: "John Doe",

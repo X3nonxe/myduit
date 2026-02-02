@@ -1,14 +1,19 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
+import { CustomPrismaAdapter } from "@/lib/prisma-adapter";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { User } from "next-auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
 interface UserWithImage extends User {
     image?: string | null;
 }
 
 export const authOptions: NextAuthOptions = {
+    adapter: CustomPrismaAdapter(prisma),
     providers: [
         CredentialsProvider({
             name: "credentials",
@@ -27,10 +32,12 @@ export const authOptions: NextAuthOptions = {
                 });
 
                 if (!user) {
+                    await logAuditEvent("LOGIN_FAILED", null, { email, reason: "User not found" });
                     throw new Error("Akun tidak ditemukan");
                 }
 
                 if (!user.password_hash) {
+                    await logAuditEvent("LOGIN_FAILED", user.id, { email, reason: "No password set (OAuth user?)" });
                     throw new Error("Akun ini tidak memiliki kata sandi");
                 }
 
@@ -40,6 +47,7 @@ export const authOptions: NextAuthOptions = {
                 );
 
                 if (!isPasswordCorrect) {
+                    await logAuditEvent("LOGIN_FAILED", user.id, { email, reason: "Invalid password" });
                     throw new Error("Email atau kata sandi salah");
                 }
 
@@ -51,9 +59,23 @@ export const authOptions: NextAuthOptions = {
                 };
             },
         }),
+
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+            allowDangerousEmailAccountLinking: true,
+        }),
+
+        GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID ?? "",
+            clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
+            allowDangerousEmailAccountLinking: true,
+        }),
     ],
     session: {
         strategy: "jwt",
+        maxAge: 7 * 24 * 60 * 60,
+        updateAge: 24 * 60 * 60,
     },
     pages: {
         signIn: "/login",
@@ -74,6 +96,16 @@ export const authOptions: NextAuthOptions = {
             return session;
         },
     },
+    events: {
+        signIn: async ({ user }) => {
+            await logAuditEvent("LOGIN_SUCCESS", user.id ?? null, {
+                email: user.email ?? undefined,
+            });
+        },
+        signOut: async ({ token }) => {
+            await logAuditEvent("LOGOUT", (token?.id as string) ?? null);
+        },
+    },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: true,
+    debug: process.env.NODE_ENV === "development",
 };

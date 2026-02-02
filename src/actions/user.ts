@@ -51,6 +51,10 @@ export async function changePassword(data: { oldPassword: string; newPassword: s
 
         if (!user) throw new Error("User not found");
 
+        if (!user.password_hash) {
+            return { error: "Akun ini menggunakan login sosial dan tidak memiliki kata sandi." };
+        }
+
         const isPasswordCorrect = await bcrypt.compare(data.oldPassword, user.password_hash);
         if (!isPasswordCorrect) {
             return { error: "Kata sandi lama salah." };

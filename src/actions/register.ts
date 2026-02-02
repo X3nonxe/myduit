@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 import { registerSchema } from "@/lib/validation";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function registerUser(formData: FormData) {
     const rawData = {
@@ -38,6 +39,8 @@ export async function registerUser(formData: FormData) {
                 name,
             },
         });
+
+        await logAuditEvent("REGISTER", user.id, { email });
 
         return { success: true, userId: user.id };
     } catch (error) {
