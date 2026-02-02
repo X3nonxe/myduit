@@ -14,6 +14,7 @@ interface ConfirmModalProps {
     confirmText?: string;
     cancelText?: string;
     variant?: "danger" | "warning" | "info";
+    errorMessage?: string | null;
 }
 
 export const ConfirmModal = ({
@@ -25,6 +26,7 @@ export const ConfirmModal = ({
     confirmText = "Ya, Lanjutkan",
     cancelText = "Batal",
     variant = "danger",
+    errorMessage,
 }: ConfirmModalProps) => {
     const [loading, setLoading] = useState(false);
 
@@ -100,6 +102,12 @@ export const ConfirmModal = ({
                                 <p className="text-[#6b6b6b] text-sm mb-6 max-w-xs">
                                     {message}
                                 </p>
+
+                                {errorMessage && (
+                                    <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg w-full">
+                                        <p className="text-rose-600 text-sm font-medium">{errorMessage}</p>
+                                    </div>
+                                )}
 
                                 <div className="flex gap-3 w-full">
                                     <button

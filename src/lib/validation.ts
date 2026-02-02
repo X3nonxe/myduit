@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/**
+ * Reusable ID validation schema
+ */
+export const idSchema = z.string()
+    .min(1, "ID is required.")
+    .max(255, "ID is too long.")
+    .refine(id => !/[\x00-\x1F\x7F]/.test(id), "ID contains invalid characters.");
+
 export const budgetSchema = z.object({
     category: z.string().min(1, "Kategori tidak boleh kosong."),
     amount: z.number()

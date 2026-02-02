@@ -514,7 +514,7 @@ describe("Goal Actions", () => {
 
             expect(result).toHaveProperty("error");
             if ("error" in result) {
-                expect(result.error).toBe("Sesi tidak valid.");
+                expect(result.error).toBe("Sesi tidak valid. Silakan login kembali.");
             }
         });
 
@@ -525,7 +525,7 @@ describe("Goal Actions", () => {
 
             expect(result).toHaveProperty("error");
             if ("error" in result) {
-                expect(result.error).toBe("Sesi tidak valid.");
+                expect(result.error).toBe("Sesi tidak valid. Silakan login kembali.");
             }
         });
 
@@ -536,7 +536,7 @@ describe("Goal Actions", () => {
 
             expect(result).toHaveProperty("error");
             if ("error" in result) {
-                expect(result.error).toBe("Sesi tidak valid.");
+                expect(result.error).toBe("Sesi tidak valid. Silakan login kembali.");
             }
         });
     });

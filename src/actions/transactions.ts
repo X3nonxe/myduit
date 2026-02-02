@@ -1,12 +1,10 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
-import { SessionUser } from "@/lib/utils";
 import { Prisma, TransactionType } from "@prisma/client";
 import { transactionSchema } from "@/lib/validation";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function addTransaction(data: {
   amount: number;
@@ -16,9 +14,7 @@ export async function addTransaction(data: {
   description?: string;
   account_id?: string;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
   try {
     const validatedFields = transactionSchema.safeParse(data);
@@ -76,13 +72,36 @@ export async function addTransaction(data: {
 }
 
 export async function deleteTransaction(id: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
   try {
-    await prisma.transaction.delete({
-      where: { id, user_id: userId },
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const transaction = await tx.transaction.findUnique({
+        where: { id },
+      });
+
+      if (!transaction || transaction.user_id !== userId) {
+        throw new Error("Transaksi tidak ditemukan.");
+      }
+
+      if (transaction.account_id && transaction.type !== TransactionType.TRANSFER) {
+        const balanceChange = transaction.type === TransactionType.INCOME
+          ? -transaction.amount
+          : transaction.amount;
+
+        await tx.account.update({
+          where: { id: transaction.account_id },
+          data: {
+            balance: {
+              increment: balanceChange
+            }
+          }
+        });
+      }
+
+      await tx.transaction.delete({
+        where: { id },
+      });
     });
 
     revalidatePath("/dashboard");
@@ -102,24 +121,35 @@ export async function updateTransaction(id: string, data: {
   date?: Date;
   description?: string;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
-  const transaction = await prisma.transaction.update({
-    where: { id, user_id: userId },
-    data,
-  });
+  try {
+    // Use partial schema for update validation
+    const updateSchema = transactionSchema.partial();
+    const validatedFields = updateSchema.safeParse(data);
 
-  revalidatePath("/dashboard");
-  revalidateTag("dashboard-stats", "default");
-  return transaction;
+    if (!validatedFields.success) {
+      return { error: validatedFields.error.errors[0].message };
+    }
+
+    const transaction = await prisma.transaction.update({
+      where: { id, user_id: userId },
+      data: validatedFields.data,
+    });
+
+    revalidatePath("/dashboard");
+    revalidateTag("dashboard-stats", "default");
+    return transaction;
+  } catch (error: unknown) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("Failed to update transaction:", error);
+    }
+    return { error: "Gagal memperbarui transaksi." };
+  }
 }
 
 export async function getTransactions() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
   return await prisma.transaction.findMany({
     where: { user_id: userId },
@@ -174,9 +204,7 @@ const getCachedDashboardStats = unstable_cache(
 );
 
 export async function getDashboardStats(filter: "week" | "month" | "year") {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
   const validFilters = ["week", "month", "year"];
   if (!validFilters.includes(filter)) {
@@ -209,9 +237,7 @@ const getCachedTransactionSummary = unstable_cache(
 );
 
 export async function getTransactionSummary() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error("Unauthorized");
-  const userId = (session.user as SessionUser).id;
+  const userId = await requireAuth();
 
   return getCachedTransactionSummary(userId);
 }

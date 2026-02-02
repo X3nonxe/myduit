@@ -1,16 +1,14 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { SessionUser } from "@/lib/utils";
 import { accountSchema } from "@/lib/validation";
+import { requireAuth, getAuthUserId } from "@/lib/auth-helpers";
+import { logError } from "@/lib/utils";
+import { ERROR_MESSAGES } from "@/lib/constants";
 
 export async function getAccounts(page = 1, pageSize = 20) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as SessionUser).id;
+    const userId = await requireAuth();
 
     const [accounts, total] = await Promise.all([
         prisma.account.findMany({
@@ -34,14 +32,11 @@ export async function addAccount(data: {
     type: string;
     balance: number;
 }) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser | undefined)?.id;
+    const userId = await getAuthUserId();
 
     if (!userId) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error("SESSION_ERROR: userId is missing from session");
-        }
-        return { error: "Sesi tidak valid. Silakan login kembali." };
+        logError("SESSION_ERROR", "userId is missing from session");
+        return { error: ERROR_MESSAGES.SESSION_INVALID };
     }
 
     const safeData = {
@@ -88,10 +83,9 @@ export async function addAccount(data: {
 }
 
 export async function deleteAccount(id: string) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser | undefined)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     const trimmedId = id?.trim() ?? "";
     if (!trimmedId) {

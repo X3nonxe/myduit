@@ -31,6 +31,7 @@ export const TransactionsView = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState("ALL");
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
         isOpen: false,
         id: null,
@@ -53,13 +54,28 @@ export const TransactionsView = () => {
     }, []);
 
     const handleDeleteClick = (id: string) => {
+        setDeleteError(null);
         setDeleteModal({ isOpen: true, id });
     };
 
     const handleDeleteConfirm = async () => {
         if (!deleteModal.id) return;
-        await deleteTransaction(deleteModal.id);
-        fetchData();
+
+        setDeleteError(null);
+
+        try {
+            await deleteTransaction(deleteModal.id);
+            setDeleteModal({ isOpen: false, id: null });
+            fetchData();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Gagal menghapus transaksi.";
+            setDeleteError(message);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setDeleteModal({ isOpen: false, id: null });
+        setDeleteError(null);
     };
 
     const formatIDR = (amount: number) => {
@@ -200,13 +216,14 @@ export const TransactionsView = () => {
 
             <ConfirmModal
                 isOpen={deleteModal.isOpen}
-                onClose={() => setDeleteModal({ isOpen: false, id: null })}
+                onClose={handleCloseModal}
                 onConfirm={handleDeleteConfirm}
                 title="Hapus Transaksi?"
                 message="Transaksi yang dihapus tidak dapat dikembalikan. Yakin ingin melanjutkan?"
                 confirmText="Ya, Hapus"
                 cancelText="Batal"
                 variant="danger"
+                errorMessage={deleteError}
             />
         </>
     );

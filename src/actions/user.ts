@@ -1,17 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { SessionUser } from "@/lib/utils";
 import { userProfileSchema, changePasswordSchema } from "@/lib/validation";
+import { requireAuth } from "@/lib/auth-helpers";
 
 export async function updateProfile(data: { name: string; image?: string }) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as SessionUser).id;
+    const userId = await requireAuth();
 
     const validation = userProfileSchema.safeParse(data);
     if (!validation.success) {
@@ -38,9 +34,7 @@ export async function updateProfile(data: { name: string; image?: string }) {
 }
 
 export async function changePassword(data: { oldPassword: string; newPassword: string }) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as SessionUser).id;
+    const userId = await requireAuth();
 
     const validation = changePasswordSchema.safeParse(data);
     if (!validation.success) {

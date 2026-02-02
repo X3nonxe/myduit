@@ -1,18 +1,14 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BudgetInput, budgetSchema } from "@/lib/validation";
-import { SessionUser } from "@/lib/utils";
-
+import { requireAuth, getAuthUserId } from "@/lib/auth-helpers";
+import { ERROR_MESSAGES } from "@/lib/constants";
 import { TransactionType } from "@prisma/client";
 
 export async function getBudgets() {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as SessionUser).id;
+    const userId = await requireAuth();
 
     const budgets = await prisma.budget.findMany({
         where: { user_id: userId },
@@ -47,10 +43,9 @@ export async function getBudgets() {
 }
 
 export async function addBudget(data: BudgetInput) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     const validatedFields = budgetSchema.safeParse(data);
     if (!validatedFields.success) {
@@ -93,10 +88,9 @@ export async function addBudget(data: BudgetInput) {
 }
 
 export async function deleteBudget(id: string) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     try {
         await prisma.budget.delete({

@@ -487,7 +487,7 @@ describe("Account Actions", () => {
             const result = await deleteAccount("acc-123");
 
             expect(result).toHaveProperty("error");
-            expect(result.error).toBe("Sesi tidak valid.");
+            expect(result.error).toBe("Sesi tidak valid. Silakan login kembali.");
         });
 
         it("should handle session with undefined user id", async () => {

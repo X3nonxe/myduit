@@ -1,9 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
+    const isDev = process.env.NODE_ENV !== "production";
+
     return new PrismaClient({
         datasourceUrl: process.env.DIRECT_URL,
-        log: ["query", "error", "warn", "info"],
+        // Only enable verbose logging in development
+        log: isDev
+            ? ["query", "error", "warn", "info"]
+            : ["error"],
     });
 };
 
@@ -17,4 +22,7 @@ const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
 export default prisma;
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Cache the client in development to prevent connection exhaustion during hot reloads
+if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prisma;
+}

@@ -497,9 +497,16 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
 
     describe("Delete Non-Existent Transaction (NOW HANDLES ERRORS)", () => {
         it("should handle deleting transaction that doesn't exist", async () => {
-            (prisma.transaction.delete as jest.Mock).mockRejectedValue(
-                new Error("Record to delete does not exist")
-            );
+            (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+                const mockTx = {
+                    transaction: {
+                        findUnique: jest.fn().mockResolvedValue(null),
+                        delete: jest.fn()
+                    },
+                    account: { update: jest.fn() },
+                };
+                return await callback(mockTx);
+            });
 
             await expect(deleteTransaction("non-existent-id")).rejects.toThrow(
                 "Gagal menghapus transaksi."
@@ -519,7 +526,8 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
                 created_at: new Date(),
             };
 
-            (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+            // Mock for addTransaction
+            (prisma.$transaction as jest.Mock).mockImplementationOnce(async (callback) => {
                 const mockTx = {
                     transaction: { create: jest.fn().mockResolvedValue(mockTransaction) },
                     account: { findFirst: jest.fn(), update: jest.fn() },
@@ -536,12 +544,30 @@ describe("Transaction Actions - Absurd & Edge Case Tests (With Validation)", () 
 
             const id = (created as { id: string }).id;
 
-            (prisma.transaction.delete as jest.Mock).mockResolvedValueOnce(mockTransaction);
+            // Mock for first deleteTransaction (success)
+            (prisma.$transaction as jest.Mock).mockImplementationOnce(async (callback) => {
+                const mockTx = {
+                    transaction: {
+                        findUnique: jest.fn().mockResolvedValue({ ...mockTransaction, user_id: "user-123" }),
+                        delete: jest.fn().mockResolvedValue(mockTransaction)
+                    },
+                    account: { update: jest.fn() },
+                };
+                return await callback(mockTx);
+            });
             await deleteTransaction(id);
 
-            (prisma.transaction.delete as jest.Mock).mockRejectedValueOnce(
-                new Error("Record to delete does not exist")
-            );
+            // Mock for second deleteTransaction (not found)
+            (prisma.$transaction as jest.Mock).mockImplementationOnce(async (callback) => {
+                const mockTx = {
+                    transaction: {
+                        findUnique: jest.fn().mockResolvedValue(null),
+                        delete: jest.fn()
+                    },
+                    account: { update: jest.fn() },
+                };
+                return await callback(mockTx);
+            });
             await expect(deleteTransaction(id)).rejects.toThrow("Gagal menghapus transaksi.");
         });
     });

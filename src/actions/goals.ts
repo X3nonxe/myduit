@@ -1,16 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { SessionUser } from "@/lib/utils";
 import { goalSchema } from "@/lib/validation";
+import { requireAuth, getAuthUserId } from "@/lib/auth-helpers";
+import { ERROR_MESSAGES } from "@/lib/constants";
 
 export async function getGoals(page = 1, pageSize = 20) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) throw new Error("Unauthorized");
-    const userId = (session.user as SessionUser).id;
+    const userId = await requireAuth();
 
     const [goals, total] = await Promise.all([
         prisma.goal.findMany({
@@ -31,10 +28,9 @@ export async function addGoal(data: {
     current_amount: number;
     deadline?: Date;
 }) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     const validatedFields = goalSchema.safeParse(data);
     if (!validatedFields.success) {
@@ -65,10 +61,9 @@ export async function addGoal(data: {
 }
 
 export async function updateGoalProgress(id: string, current_amount: number) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     const validatedCurrentAmount = goalSchema.shape.current_amount.safeParse(current_amount);
     if (!validatedCurrentAmount.success) {
@@ -92,10 +87,9 @@ export async function updateGoalProgress(id: string, current_amount: number) {
 }
 
 export async function deleteGoal(id: string) {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as SessionUser)?.id;
+    const userId = await getAuthUserId();
 
-    if (!userId) return { error: "Sesi tidak valid." };
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
     try {
         await prisma.goal.delete({
