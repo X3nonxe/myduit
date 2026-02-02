@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
+    // Trigger redeploy for Vercel
     return [
       {
         source: "/:path*",
