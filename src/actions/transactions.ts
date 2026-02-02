@@ -124,7 +124,6 @@ export async function updateTransaction(id: string, data: {
   const userId = await requireAuth();
 
   try {
-    // Use partial schema for update validation
     const updateSchema = transactionSchema.partial();
     const validatedFields = updateSchema.safeParse(data);
 
