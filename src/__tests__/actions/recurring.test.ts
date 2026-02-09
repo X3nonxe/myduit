@@ -1,4 +1,4 @@
-import { addRecurringTransaction, processRecurringTransactions, deleteRecurringTransaction } from "@/actions/recurring";
+import { addRecurringTransaction, updateRecurringTransaction, processRecurringTransactions, deleteRecurringTransaction } from "@/actions/recurring";
 import { Frequency, TransactionType } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -83,6 +83,61 @@ describe("Recurring Transaction Actions", () => {
             mockGetServerSession.mockResolvedValueOnce(null);
 
             const result = await addRecurringTransaction({
+                amount: 1000,
+                type: TransactionType.EXPENSE,
+                category: "Test",
+                frequency: Frequency.DAILY,
+                start_date: new Date(),
+            });
+
+            expect(result).toHaveProperty("error");
+        });
+    });
+
+    describe("updateRecurringTransaction", () => {
+        it("should update a recurring transaction successfully", async () => {
+            const mockUpdateData = {
+                amount: 2000,
+                type: TransactionType.EXPENSE,
+                category: "Updated Category",
+                frequency: Frequency.WEEKLY,
+                start_date: new Date("2024-02-01"),
+                is_active: false,
+            };
+
+            const mockUpdated = {
+                id: "rec-123",
+                user_id: "user-123",
+                ...mockUpdateData,
+                next_run_date: new Date("2024-01-01"), // Original date
+                created_at: new Date(),
+                updated_at: new Date(),
+                account_id: null,
+                end_date: null,
+                last_run_date: null,
+                description: null,
+            };
+
+            (prisma.recurringTransaction.update as jest.Mock).mockResolvedValue(mockUpdated);
+
+            const result = await updateRecurringTransaction("rec-123", mockUpdateData);
+
+            expect(prisma.recurringTransaction.update).toHaveBeenCalledWith({
+                where: { id: "rec-123", user_id: "user-123" },
+                data: expect.objectContaining({
+                    amount: 2000,
+                    category: "Updated Category",
+                    is_active: false,
+                }),
+            });
+            expect(result).toHaveProperty("success", true);
+            expect(result).toHaveProperty("data", mockUpdated);
+        });
+
+        it("should return error if update fails", async () => {
+            (prisma.recurringTransaction.update as jest.Mock).mockRejectedValue(new Error("DB Error"));
+
+            const result = await updateRecurringTransaction("rec-123", {
                 amount: 1000,
                 type: TransactionType.EXPENSE,
                 category: "Test",

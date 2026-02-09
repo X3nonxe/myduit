@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { X, Tag, Calendar, FileText, Wallet, Loader2, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-// We'll reuse the addRecurringTransaction action
-import { addRecurringTransaction } from "@/actions/recurring";
+import { addRecurringTransaction, updateRecurringTransaction } from "@/actions/recurring";
 import { getAccounts } from "@/actions/accounts";
-import { Frequency, TransactionType } from "@prisma/client";
+import { Frequency, TransactionType, RecurringTransaction } from "@prisma/client";
 
 interface Account {
     id: string;
@@ -18,9 +17,10 @@ interface Account {
 interface RecurringFormProps {
     onClose?: () => void;
     onSuccess?: () => void;
+    initialData?: RecurringTransaction | null;
 }
 
-export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
+export const RecurringForm = ({ onClose, onSuccess, initialData }: RecurringFormProps) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -55,21 +55,35 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
         const frequency = formData.get("frequency") as Frequency;
 
         try {
-            const result = await addRecurringTransaction({
-                amount,
-                type,
-                category,
-                start_date,
-                end_date,
-                description,
-                account_id: account_id || undefined,
-                frequency,
-            });
+            let result;
+            if (initialData) {
+                result = await updateRecurringTransaction(initialData.id, {
+                    amount,
+                    type,
+                    category,
+                    start_date,
+                    end_date,
+                    description,
+                    account_id: account_id || undefined,
+                    frequency,
+                    is_active: initialData.is_active
+                });
+            } else {
+                result = await addRecurringTransaction({
+                    amount,
+                    type,
+                    category,
+                    start_date,
+                    end_date,
+                    description,
+                    account_id: account_id || undefined,
+                    frequency,
+                });
+            }
 
             if ('error' in result && result.error) {
                 setError(result.error);
             } else {
-                (e.target as HTMLFormElement).reset();
                 router.refresh();
                 if (onSuccess) onSuccess();
                 if (onClose) onClose();
@@ -86,9 +100,11 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h3 className="text-xl font-semibold text-[#1d1d1b]">
-                        Transaksi Berulang
+                        {initialData ? "Edit Jadwal" : "Transaksi Berulang"}
                     </h3>
-                    <p className="text-[#1d1d1b] text-sm">Jadwalkan pemasukan atau pengeluaran rutin</p>
+                    <p className="text-[#1d1d1b] text-sm">
+                        {initialData ? "Perbarui detail transaksi rutin ini" : "Jadwalkan pemasukan atau pengeluaran rutin"}
+                    </p>
                 </div>
                 {onClose && (
                     <button
@@ -121,6 +137,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                             type="number"
                             required
                             placeholder="0"
+                            defaultValue={initialData?.amount}
                             className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-4 pl-12 pr-4 outline-none focus:border-[#d97757]/50 focus:ring-4 focus:ring-[#d97757]/5 transition-all text-xl font-semibold text-[#1d1d1b] placeholder:text-[#6b6b6b]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                     </div>
@@ -135,6 +152,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                         <select
                             name="type"
                             required
+                            defaultValue={initialData?.type || "EXPENSE"}
                             className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-3 px-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b] cursor-pointer"
                         >
                             <option value="EXPENSE">Pengeluaran</option>
@@ -151,6 +169,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                             <select
                                 name="frequency"
                                 required
+                                defaultValue={initialData?.frequency || "MONTHLY"}
                                 className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b] cursor-pointer appearance-none"
                             >
                                 <option value="DAILY">Harian</option>
@@ -172,6 +191,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                             <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6b6b6b] w-4 h-4 group-focus-within:text-[#d97757]" />
                             <select
                                 name="account_id"
+                                defaultValue={initialData?.account_id || ""}
                                 className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b] cursor-pointer appearance-none"
                             >
                                 <option value="">Pilih Akun (Opsional)</option>
@@ -194,6 +214,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                                 type="text"
                                 required
                                 placeholder="Misal: Langganan"
+                                defaultValue={initialData?.category}
                                 className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b] placeholder:text-[#6b6b6b]/30"
                             />
                         </div>
@@ -212,7 +233,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                                 name="start_date"
                                 type="date"
                                 required
-                                defaultValue={new Date().toISOString().split('T')[0]}
+                                defaultValue={initialData?.start_date ? new Date(initialData.start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                                 className="w-full bg-[#f9f9f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b]"
                             />
                         </div>
@@ -226,6 +247,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                             <input
                                 name="end_date"
                                 type="date"
+                                defaultValue={initialData?.end_date ? new Date(initialData.end_date).toISOString().split('T')[0] : ""}
                                 className="w-full bg-[#f9f9f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b]"
                             />
                         </div>
@@ -242,6 +264,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                         <textarea
                             name="description"
                             placeholder="Catatan tambahan..."
+                            defaultValue={initialData?.description || ""}
                             rows={2}
                             className="w-full bg-[#f9f8f4] border border-[#e5e2da] rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#d97757]/50 transition-all text-sm text-[#1d1d1b] placeholder:text-[#6b6b6b]/30 resize-none"
                         />
@@ -255,7 +278,7 @@ export const RecurringForm = ({ onClose, onSuccess }: RecurringFormProps) => {
                     {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                        "Simpan Jadwal"
+                        initialData ? "Simpan Perubahan" : "Simpan Jadwal"
                     )}
                 </button>
             </form>

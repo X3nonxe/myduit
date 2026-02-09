@@ -45,6 +45,44 @@ export async function addRecurringTransaction(data: {
     }
 }
 
+export async function updateRecurringTransaction(id: string, data: {
+    amount: number;
+    type: TransactionType;
+    category: string;
+    description?: string;
+    frequency: Frequency;
+    start_date: Date;
+    end_date?: Date;
+    account_id?: string;
+    is_active?: boolean;
+}) {
+    const userId = await getAuthUserId();
+    if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
+
+    try {
+        const recurring = await prisma.recurringTransaction.update({
+            where: { id, user_id: String(userId) },
+            data: {
+                amount: data.amount,
+                type: data.type,
+                category: data.category,
+                description: data.description,
+                frequency: data.frequency,
+                start_date: data.start_date,
+                end_date: data.end_date,
+                account_id: data.account_id,
+                is_active: data.is_active,
+            },
+        });
+
+        revalidatePath("/dashboard");
+        return { success: true, data: recurring };
+    } catch (error) {
+        console.error("Failed to update recurring transaction:", error);
+        return { error: "Gagal memperbarui transaksi berulang." };
+    }
+}
+
 export async function deleteRecurringTransaction(id: string) {
     const userId = await getAuthUserId();
     if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };

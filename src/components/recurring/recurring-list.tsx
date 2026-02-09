@@ -11,13 +11,13 @@ import {
     ArrowDownLeft,
     RefreshCcw,
     RefreshCw,
+    Pencil,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { RecurringTransaction, TransactionType, Frequency } from "@prisma/client";
 
-// Extended type to include account relation
 interface RecurringTransactionWithAccount extends RecurringTransaction {
     account: {
         name: string;
@@ -25,7 +25,12 @@ interface RecurringTransactionWithAccount extends RecurringTransaction {
     } | null;
 }
 
-export const RecurringList = () => {
+interface RecurringListProps {
+    onEdit?: (transaction: RecurringTransaction) => void;
+    refreshTrigger?: number;
+}
+
+export const RecurringList = ({ onEdit, refreshTrigger }: RecurringListProps) => {
     const [transactions, setTransactions] = useState<RecurringTransactionWithAccount[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -46,10 +51,9 @@ export const RecurringList = () => {
         }
     };
 
-    // Expose refresh method to parent if needed, or just auto-refresh on mount
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [refreshTrigger]);
 
     const handleDeleteClick = (id: string) => {
         setDeleteError(null);
@@ -170,12 +174,22 @@ export const RecurringList = () => {
                                                 </p>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => handleDeleteClick(tx.id)}
-                                                    className="p-2 text-[#6b6b6b] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => onEdit?.(tx)}
+                                                        className="p-2 text-[#6b6b6b] hover:text-[#d97757] hover:bg-[#d97757]/10 rounded-lg transition-all"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(tx.id)}
+                                                        className="p-2 text-[#6b6b6b] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                        title="Hapus"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </motion.tr>
                                     ))

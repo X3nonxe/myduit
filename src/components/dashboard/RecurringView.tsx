@@ -5,9 +5,28 @@ import { RecurringList } from "@/components/recurring/recurring-list";
 import { RecurringForm } from "@/components/recurring/recurring-form";
 import { Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { RecurringTransaction } from "@prisma/client";
 
 export const RecurringView = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const handleEdit = (transaction: RecurringTransaction) => {
+        setEditingTransaction(transaction);
+        setIsFormOpen(true);
+    };
+
+    const handleSuccess = () => {
+        setIsFormOpen(false);
+        setEditingTransaction(null);
+        setRefreshTrigger(prev => prev + 1);
+    };
+
+    const handleClose = () => {
+        setIsFormOpen(false);
+        setEditingTransaction(null);
+    };
 
     return (
         <div className="space-y-6">
@@ -17,7 +36,10 @@ export const RecurringView = () => {
                     <p className="text-[#6b6b6b]">Kelola langganan dan tagihan otomatis Anda</p>
                 </div>
                 <button
-                    onClick={() => setIsFormOpen(true)}
+                    onClick={() => {
+                        setEditingTransaction(null);
+                        setIsFormOpen(true);
+                    }}
                     className="flex items-center gap-2 bg-[#1d1d1b] text-white px-4 py-2.5 rounded-xl font-medium hover:bg-[#333] transition-all shadow-lg shadow-black/5 active:scale-[0.98]"
                 >
                     <Plus className="w-4 h-4" />
@@ -25,7 +47,7 @@ export const RecurringView = () => {
                 </button>
             </div>
 
-            <RecurringList />
+            <RecurringList onEdit={handleEdit} refreshTrigger={refreshTrigger} />
 
             <AnimatePresence>
                 {isFormOpen && (
@@ -34,7 +56,7 @@ export const RecurringView = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setIsFormOpen(false)}
+                            onClick={handleClose}
                             className="absolute inset-0 bg-[#1d1d1b]/20 backdrop-blur-sm"
                         />
                         <motion.div
@@ -44,13 +66,9 @@ export const RecurringView = () => {
                             className="relative w-full max-w-lg z-10"
                         >
                             <RecurringForm
-                                onClose={() => setIsFormOpen(false)}
-                                onSuccess={() => {
-                                    setIsFormOpen(false);
-                                    // Trigger refresh logic if needed, currently list auto-fetches on mount
-                                    // We might need to implement a reload mechanism or signal
-                                    window.location.reload();
-                                }}
+                                onClose={handleClose}
+                                onSuccess={handleSuccess}
+                                initialData={editingTransaction}
                             />
                         </motion.div>
                     </div>

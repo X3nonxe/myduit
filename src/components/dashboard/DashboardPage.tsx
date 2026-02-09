@@ -36,7 +36,6 @@ export default function DashboardPage() {
     const { setIsAddModalOpen } = useFinanceStore();
     const [activeTab, setActiveTab] = useState("Ringkasan");
 
-    // Process recurring transactions silently on mount
     useEffect(() => {
         const checkRecurring = async () => {
             try {
