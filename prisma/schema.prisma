@@ -29,20 +29,22 @@ model User {
   goals        Goal[]
 
   // Relations - Auth
-  oauthAccounts OAuthAccount[]
-  sessions      Session[]
-  auditLogs     AuditLog[]
+  oauthAccounts         OAuthAccount[]
+  sessions              Session[]
+  auditLogs             AuditLog[]
+  recurringTransactions RecurringTransaction[]
 }
 
 model Account {
-  id           String        @id @default(cuid())
-  name         String // e.g., "Cash", "BCA", "GoPay"
-  type         String // "BANK", "CASH", "E-WALLET"
-  balance      Float         @default(0)
-  user_id      String
-  user         User          @relation("UserAccounts", fields: [user_id], references: [id])
-  transactions Transaction[]
-  created_at   DateTime      @default(now())
+  id                    String                 @id @default(cuid())
+  name                  String // e.g., "Cash", "BCA", "GoPay"
+  type                  String // "BANK", "CASH", "E-WALLET"
+  balance               Float                  @default(0)
+  user_id               String
+  user                  User                   @relation("UserAccounts", fields: [user_id], references: [id])
+  transactions          Transaction[]
+  created_at            DateTime               @default(now())
+  recurringTransactions RecurringTransaction[]
 
   @@index([user_id])
   @@index([user_id, name])
@@ -99,6 +101,36 @@ enum TransactionType {
   TRANSFER
 }
 
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model RecurringTransaction {
+  id            String          @id @default(cuid())
+  user_id       String
+  user          User            @relation(fields: [user_id], references: [id])
+  account_id    String?
+  account       Account?        @relation(fields: [account_id], references: [id])
+  amount        Float
+  type          TransactionType
+  category      String
+  description   String?
+  frequency     Frequency
+  start_date    DateTime
+  end_date      DateTime?
+  last_run_date DateTime?
+  next_run_date DateTime
+  is_active     Boolean         @default(true)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+
+  @@index([user_id])
+  @@index([next_run_date])
+}
+
 model OAuthAccount {
   id                String  @id @default(cuid())
   userId            String
@@ -138,7 +170,7 @@ model AuditLog {
   id        String   @id @default(cuid())
   userId    String
   event     String
-  metadata  Json? 
+  metadata  Json?
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())

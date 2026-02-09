@@ -11,6 +11,8 @@ import { SettingsView } from "@/components/dashboard/SettingsView";
 import { SummaryAccounts } from "@/components/dashboard/SummaryAccounts";
 import { SummaryBudgets } from "@/components/dashboard/SummaryBudgets";
 import { SummaryGoals } from "@/components/dashboard/SummaryGoals";
+import { RecurringView } from "@/components/dashboard/RecurringView";
+import { processRecurringTransactions } from "@/actions/recurring";
 import {
     Plus,
     LayoutDashboard,
@@ -22,20 +24,34 @@ import {
     PieChart,
     Target,
     ArrowRight,
+    RefreshCw,
 } from "lucide-react";
 import { useFinanceStore } from "@/store/useFinanceStore";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DashboardPage() {
     const { setIsAddModalOpen } = useFinanceStore();
     const [activeTab, setActiveTab] = useState("Ringkasan");
 
+    // Process recurring transactions silently on mount
+    useEffect(() => {
+        const checkRecurring = async () => {
+            try {
+                await processRecurringTransactions();
+            } catch (err) {
+                console.error("Failed to process recurring transactions:", err);
+            }
+        };
+        checkRecurring();
+    }, []);
+
     const navItems = [
         { icon: LayoutDashboard, label: "Ringkasan" },
         { icon: History, label: "Transaksi" },
+        { icon: RefreshCw, label: "Jadwal Rutin" },
         { icon: Wallet, label: "Akun & Kartu" },
         { icon: PieChart, label: "Anggaran" },
         { icon: Target, label: "Target" },
@@ -113,6 +129,8 @@ export default function DashboardPage() {
                 return <div className="p-8 max-w-7xl mx-auto"><BudgetsView /></div>;
             case "Target":
                 return <div className="p-8 max-w-7xl mx-auto"><GoalsView /></div>;
+            case "Jadwal Rutin":
+                return <div className="p-8 max-w-7xl mx-auto"><RecurringView /></div>;
             case "Pengaturan":
                 return <div className="p-8 max-w-4xl mx-auto"><SettingsView /></div>;
             default:
