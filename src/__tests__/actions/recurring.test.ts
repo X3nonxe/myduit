@@ -1,4 +1,4 @@
-import { addRecurringTransaction, updateRecurringTransaction, processRecurringTransactions, deleteRecurringTransaction } from "@/actions/recurring";
+import { addRecurringTransaction, updateRecurringTransaction, processRecurringTransactions } from "@/actions/recurring";
 import { Frequency, TransactionType } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -201,7 +201,7 @@ describe("Recurring Transaction Actions", () => {
 
             (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([dueTransaction]);
 
-            let capturedUpdateData: any;
+            let capturedUpdateData: { is_active: boolean } | undefined;
             (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
                 const mockTx = {
                     transaction: { create: jest.fn() },
@@ -218,7 +218,7 @@ describe("Recurring Transaction Actions", () => {
             await processRecurringTransactions();
 
             expect(capturedUpdateData).toBeDefined();
-            expect(capturedUpdateData.is_active).toBe(false);
+            expect(capturedUpdateData?.is_active).toBe(false);
         });
     });
 });

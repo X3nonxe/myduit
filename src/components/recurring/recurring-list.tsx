@@ -16,7 +16,7 @@ import {
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { RecurringTransaction, TransactionType, Frequency } from "@prisma/client";
+import { RecurringTransaction, Frequency } from "@prisma/client";
 
 interface RecurringTransactionWithAccount extends RecurringTransaction {
     account: {

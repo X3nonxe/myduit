@@ -2,9 +2,9 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAuth, getAuthUserId } from "@/lib/auth-helpers";
+import { getAuthUserId } from "@/lib/auth-helpers";
 import { Frequency, TransactionType } from "@prisma/client";
-import { addDays, addWeeks, addMonths, addYears, isAfter, startOfDay } from "date-fns";
+import { addDays, addWeeks, addMonths, addYears, isAfter } from "date-fns";
 import { ERROR_MESSAGES } from "@/lib/constants";
 
 export async function addRecurringTransaction(data: {
