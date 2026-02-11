@@ -6,6 +6,7 @@ import { getAuthUserId } from "@/lib/auth-helpers";
 import { Frequency, TransactionType } from "@prisma/client";
 import { addDays, addWeeks, addMonths, addYears, isAfter } from "date-fns";
 import { ERROR_MESSAGES } from "@/lib/constants";
+import { recurringTransactionSchema, recurringTransactionBaseSchema } from "@/lib/validation";
 
 export async function addRecurringTransaction(data: {
     amount: number;
@@ -20,19 +21,26 @@ export async function addRecurringTransaction(data: {
     const userId = await getAuthUserId();
     if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
+    const validatedFields = recurringTransactionSchema.safeParse(data);
+    if (!validatedFields.success) {
+        return { error: validatedFields.error.errors[0].message };
+    }
+
+    const { amount, type, category, description, frequency, start_date, end_date, account_id } = validatedFields.data;
+
     try {
         const recurring = await prisma.recurringTransaction.create({
             data: {
                 user_id: String(userId),
-                amount: data.amount,
-                type: data.type,
-                category: data.category,
-                description: data.description,
-                frequency: data.frequency,
-                start_date: data.start_date,
-                end_date: data.end_date,
-                next_run_date: data.start_date,
-                account_id: data.account_id,
+                amount,
+                type,
+                category,
+                description,
+                frequency,
+                start_date,
+                end_date,
+                next_run_date: start_date,
+                account_id,
                 is_active: true,
             },
         });
@@ -59,20 +67,16 @@ export async function updateRecurringTransaction(id: string, data: {
     const userId = await getAuthUserId();
     if (!userId) return { error: ERROR_MESSAGES.SESSION_INVALID };
 
+    const updateSchema = recurringTransactionBaseSchema.partial();
+    const validatedFields = updateSchema.safeParse(data);
+    if (!validatedFields.success) {
+        return { error: validatedFields.error.errors[0].message };
+    }
+
     try {
         const recurring = await prisma.recurringTransaction.update({
             where: { id, user_id: String(userId) },
-            data: {
-                amount: data.amount,
-                type: data.type,
-                category: data.category,
-                description: data.description,
-                frequency: data.frequency,
-                start_date: data.start_date,
-                end_date: data.end_date,
-                account_id: data.account_id,
-                is_active: data.is_active,
-            },
+            data: validatedFields.data,
         });
 
         revalidatePath("/dashboard");
@@ -159,6 +163,18 @@ export async function processRecurringTransactions() {
                     date: rt.next_run_date,
                 },
             });
+
+            if (rt.account_id && rt.type !== TransactionType.TRANSFER) {
+                const balanceChange = rt.type === TransactionType.INCOME ? rt.amount : -rt.amount;
+                await tx.account.update({
+                    where: { id: rt.account_id },
+                    data: {
+                        balance: {
+                            increment: balanceChange
+                        }
+                    }
+                });
+            }
 
             let nextDate = new Date(rt.next_run_date);
             switch (rt.frequency) {

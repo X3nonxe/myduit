@@ -113,3 +113,31 @@ export const transactionSchema = z.object({
 });
 
 export type BudgetInput = z.infer<typeof budgetSchema>;
+
+export const recurringTransactionBaseSchema = z.object({
+    amount: z.number({ invalid_type_error: "Amount must be a valid number.", required_error: "Amount must be a valid number." })
+        .min(0, "Amount cannot be negative.")
+        .max(Number.MAX_SAFE_INTEGER, "Amount exceeds maximum allowed value.")
+        .finite("Amount must be a valid number."),
+    type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
+    category: z.string()
+        .min(1, "Category cannot be empty.")
+        .max(100, "Category is too long.")
+        .refine((val) => val.trim().length > 0, "Category cannot be empty."),
+    description: z.string().optional().nullable(),
+    frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]),
+    start_date: z.date(),
+    end_date: z.date().optional().nullable(),
+    account_id: z.string().max(255, "Account ID is too long.").optional().nullable(),
+    is_active: z.boolean().optional(),
+});
+
+export const recurringTransactionSchema = recurringTransactionBaseSchema.refine((data) => {
+    if (data.end_date && data.start_date > data.end_date) {
+        return false;
+    }
+    return true;
+}, {
+    message: "End date must be after start date.",
+    path: ["end_date"],
+});
