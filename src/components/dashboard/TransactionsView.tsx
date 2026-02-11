@@ -11,7 +11,6 @@ import {
     ArrowDownLeft,
     RefreshCcw,
     Search,
-    Download
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
