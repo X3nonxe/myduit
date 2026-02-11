@@ -28,6 +28,7 @@ export const AccountsView = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
         isOpen: false,
         id: null,
@@ -75,16 +76,24 @@ export const AccountsView = () => {
     };
 
     const handleDeleteClick = (id: string) => {
+        setDeleteError(null);
         setDeleteModal({ isOpen: true, id });
     };
 
     const handleDeleteConfirm = async () => {
         if (!deleteModal.id) return;
-        const result = await deleteAccount(deleteModal.id);
-        if (result.error) {
-            throw new Error(result.error);
+        setDeleteError(null);
+
+        try {
+            const result = await deleteAccount(deleteModal.id);
+            if (result.error) {
+                setDeleteError(result.error);
+                throw new Error(result.error);
+            }
+            fetchData();
+        } catch (error) {
+            throw error;
         }
-        fetchData();
     };
 
     const formatIDR = (amount: number) => {
@@ -257,13 +266,17 @@ export const AccountsView = () => {
 
             <ConfirmModal
                 isOpen={deleteModal.isOpen}
-                onClose={() => setDeleteModal({ isOpen: false, id: null })}
+                onClose={() => {
+                    setDeleteModal({ isOpen: false, id: null });
+                    setDeleteError(null);
+                }}
                 onConfirm={handleDeleteConfirm}
                 title="Hapus Akun?"
                 message="Semua transaksi terkait akun ini tetap tersimpan. Yakin ingin menghapus akun ini?"
                 confirmText="Ya, Hapus"
                 cancelText="Batal"
                 variant="danger"
+                errorMessage={deleteError}
             />
         </>
     );

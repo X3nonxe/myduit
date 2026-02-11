@@ -36,7 +36,9 @@ export const ConfirmModal = ({
             await onConfirm();
             onClose();
         } catch (error) {
-            console.error("Confirm action failed:", error);
+            if (process.env.NODE_ENV !== "production") {
+                console.error("Confirm action failed:", error);
+            }
         } finally {
             setLoading(false);
         }
