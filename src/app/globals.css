@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-accent: #d97757;
-  --color-paper: #ffffff;
-  --color-surface: #f9f8f4;
-  --color-border-soft: #e5e2da;
-  --color-text-main: #1d1d1b;
-  --color-text-muted: #6b6b6b;
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-border-soft: var(--border-soft);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
 
   --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -15,7 +16,17 @@
 :root {
   --background: #f9f8f4;
   --foreground: #1d1d1b;
+
+  --accent: #d97757;
+  --accent-foreground: #ffffff;
+  --paper: #ffffff;
+  --surface: #f9f8f4;
+  --border-soft: #e5e2da;
+  --text-main: #1d1d1b;
+  --text-muted: #6b6b6b;
 }
+
+
 
 @layer base {
   body {
@@ -46,12 +57,12 @@
 
   .claude-card:hover {
     box-shadow: var(--shadow-medium);
-    border-color: #d1cdc0;
+    border-color: var(--color-accent);
   }
 
   .btn-primary {
     background: var(--color-text-main);
-    color: white;
+    color: var(--color-surface);
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 500;
@@ -59,7 +70,7 @@
   }
 
   .btn-primary:hover {
-    background: #333333;
+    opacity: 0.9;
   }
 
   .btn-secondary {
@@ -69,9 +80,10 @@
     border-radius: 0.75rem;
     font-weight: 500;
     transition: all 0.2s;
+    color: var(--color-text-main);
   }
 
   .btn-secondary:hover {
-    background: #f1efea;
+    background: var(--color-surface);
   }
 }

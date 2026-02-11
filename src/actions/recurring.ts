@@ -155,7 +155,7 @@ export async function processRecurringTransactions() {
                     amount: rt.amount,
                     type: rt.type,
                     category: rt.category,
-                    description: rt.description ? `(Auto) ${rt.description}` : "(Auto) Recurring Transaction",
+                    description: rt.description,
                     date: rt.next_run_date,
                 },
             });

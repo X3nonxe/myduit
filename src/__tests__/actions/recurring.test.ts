@@ -109,7 +109,7 @@ describe("Recurring Transaction Actions", () => {
                 id: "rec-123",
                 user_id: "user-123",
                 ...mockUpdateData,
-                next_run_date: new Date("2024-01-01"), // Original date
+                next_run_date: new Date("2024-01-01"),
                 created_at: new Date(),
                 updated_at: new Date(),
                 account_id: null,
@@ -219,6 +219,80 @@ describe("Recurring Transaction Actions", () => {
 
             expect(capturedUpdateData).toBeDefined();
             expect(capturedUpdateData?.is_active).toBe(false);
+        });
+
+        it("should handle end-of-month date calculation (Jan 31 -> Feb 28/29)", async () => {
+            const jan31 = new Date("2023-01-31T00:00:00.000Z");
+
+            const monthlyTransaction = {
+                id: "rec-eom",
+                user_id: "user-123",
+                amount: 100,
+                type: TransactionType.EXPENSE,
+                category: "Monthly Bill",
+                frequency: Frequency.MONTHLY,
+                next_run_date: jan31,
+                is_active: true,
+                created_at: jan31,
+                updated_at: jan31,
+            };
+
+            (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([monthlyTransaction]);
+
+            let capturedNextDate: Date | undefined;
+            (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+                const mockTx = {
+                    transaction: { create: jest.fn() },
+                    recurringTransaction: {
+                        update: jest.fn().mockImplementation(({ data }) => {
+                            capturedNextDate = data.next_run_date;
+                            return Promise.resolve();
+                        })
+                    },
+                };
+                return await callback(mockTx);
+            });
+
+            await processRecurringTransactions();
+
+            expect(capturedNextDate).toBeDefined();
+            expect(capturedNextDate?.toISOString()).toContain("2023-02-28");
+        });
+
+        it("should handle leap year calculation (Feb 29 -> Feb 28)", async () => {
+            const feb29 = new Date("2024-02-29T00:00:00.000Z");
+
+            const yearlyTransaction = {
+                id: "rec-leap",
+                user_id: "user-123",
+                amount: 100,
+                type: TransactionType.EXPENSE,
+                category: "Yearly Sub",
+                frequency: Frequency.YEARLY,
+                next_run_date: feb29,
+                is_active: true,
+            };
+
+            (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([yearlyTransaction]);
+
+            let capturedNextDate: Date | undefined;
+            (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+                const mockTx = {
+                    transaction: { create: jest.fn() },
+                    recurringTransaction: {
+                        update: jest.fn().mockImplementation(({ data }) => {
+                            capturedNextDate = data.next_run_date;
+                            return Promise.resolve();
+                        })
+                    },
+                };
+                return await callback(mockTx);
+            });
+
+            await processRecurringTransactions();
+
+            expect(capturedNextDate).toBeDefined();
+            expect(capturedNextDate?.toISOString()).toContain("2025-02-28");
         });
     });
 });

@@ -36,8 +36,8 @@ export const TopCards = () => {
             title: "Saldo Total",
             amount: stats.balance,
             icon: Wallet,
-            color: "text-[#1d1d1b]",
-            bg: "bg-[#f1efea]",
+            color: "text-text-main",
+            bg: "bg-gray-100",
         },
         {
             title: "Pemasukan",
@@ -50,7 +50,7 @@ export const TopCards = () => {
             title: "Pengeluaran",
             amount: stats.expense,
             icon: TrendingDown,
-            color: "text-[#d97757]",
+            color: "text-accent",
             bg: "bg-rose-50",
         },
     ];
@@ -58,17 +58,17 @@ export const TopCards = () => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {cards.map((card) => (
-                <GlassCard key={card.title} className="p-6 border-[#e5e2da] hover:shadow-xl transition-all duration-300 bg-white">
+                <GlassCard key={card.title} className="p-6 border-border-soft hover:shadow-xl transition-all duration-300 bg-paper">
                     <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${card.bg} ${card.color}`}>
                             <card.icon className="w-6 h-6" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs font-semibold text-[#6b6b6b] uppercase tracking-wider">
+                            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                                 {card.title}
                             </p>
                             {loading ? (
-                                <div className="h-6 w-24 bg-[#f1efea] animate-pulse rounded mt-1" />
+                                <div className="h-6 w-24 bg-gray-100 animate-pulse rounded mt-1" />
                             ) : (
                                 <h3 className={`text-xl font-bold mt-1 ${card.color}`}>
                                     {formatCurrency(card.amount)}
