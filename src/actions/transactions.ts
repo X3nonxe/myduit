@@ -38,7 +38,6 @@ export async function addTransaction(data: {
         },
       });
 
-      // Only update account balance for INCOME and EXPENSE, not TRANSFER
       if (accountId && type !== TransactionType.TRANSFER) {
         const balanceChange = type === TransactionType.INCOME ? amount : -amount;
         const account = await tx.account.findFirst({
@@ -157,7 +156,6 @@ export async function getTransactions() {
   });
 }
 
-// Cached version of dashboard stats query
 const getCachedDashboardStats = unstable_cache(
   async (userId: string, filter: "week" | "month" | "year") => {
     if (filter === "week") {
@@ -213,7 +211,6 @@ export async function getDashboardStats(filter: "week" | "month" | "year") {
   return getCachedDashboardStats(userId, filter);
 }
 
-// Cached version of transaction summary
 const getCachedTransactionSummary = unstable_cache(
   async (userId: string) => {
     const totals = await prisma.transaction.groupBy({
@@ -239,4 +236,35 @@ export async function getTransactionSummary() {
   const userId = await requireAuth();
 
   return getCachedTransactionSummary(userId);
+}
+export async function getAllTransactionsForExport(startDate?: Date, endDate?: Date) {
+  const userId = await requireAuth();
+
+  try {
+    const whereClause: Prisma.TransactionWhereInput = {
+      user_id: userId,
+    };
+
+    if (startDate && endDate) {
+      whereClause.date = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+
+    const transactions = await prisma.transaction.findMany({
+      where: whereClause,
+      orderBy: { date: "desc" },
+      include: {
+        account: {
+          select: { name: true },
+        },
+      },
+    });
+
+    return { success: true, data: transactions };
+  } catch (error) {
+    console.error("Failed to fetch transactions for export:", error);
+    return { error: "Gagal mengambil data transaksi." };
+  }
 }

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ExportButton } from "@/components/dashboard/ExportButton";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Transaction {
@@ -132,9 +133,7 @@ export const TransactionsView = () => {
                                 </button>
                             ))}
                         </div>
-                        <button className="p-2.5 bg-white border border-[#e5e2da] rounded-xl text-[#6b6b6b] hover:bg-[#f1efea] transition-all">
-                            <Download className="w-4 h-4" />
-                        </button>
+                        <ExportButton />
                     </div>
                 </div>
 
